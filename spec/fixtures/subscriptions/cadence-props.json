@@ -1,0 +1,12 @@
+{
+  "module": "subscriptions",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SubscriptionDetector.swift",
+  "note": "SubscriptionCadence properties: periodsPerYear, days, unit, label. Pinned so annual-cost math and display stay in lockstep.",
+  "cases": [
+    { "name": "weekly", "fn": "cadenceProps", "input": { "cadence": "weekly" }, "expected": { "periodsPerYear": "52", "days": 7, "unit": "wk", "label": "Weekly" } },
+    { "name": "biweekly", "fn": "cadenceProps", "input": { "cadence": "biweekly" }, "expected": { "periodsPerYear": "26", "days": 14, "unit": "2wk", "label": "Every 2 weeks" } },
+    { "name": "monthly", "fn": "cadenceProps", "input": { "cadence": "monthly" }, "expected": { "periodsPerYear": "12", "days": 30, "unit": "mo", "label": "Monthly" } },
+    { "name": "quarterly", "fn": "cadenceProps", "input": { "cadence": "quarterly" }, "expected": { "periodsPerYear": "4", "days": 91, "unit": "qtr", "label": "Quarterly" } },
+    { "name": "yearly", "fn": "cadenceProps", "input": { "cadence": "yearly" }, "expected": { "periodsPerYear": "1", "days": 365, "unit": "yr", "label": "Yearly" } }
+  ]
+}

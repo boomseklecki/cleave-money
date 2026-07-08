@@ -1,0 +1,34 @@
+{
+  "module": "split-math",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SplitMath.swift",
+  "note": "collapseOlder: expenses are newest-first; return the visible prefix through the most recent settle-up (inclusive) and how many older were collapsed. Settle-up is detected by category == 'Settle-up'.",
+  "cases": [
+    {
+      "name": "collapse-through-most-recent-settle-up",
+      "fn": "collapseOlder",
+      "input": { "expenses": [
+        { "details": "new1", "category": "food" },
+        { "details": "new2", "category": "food" },
+        { "details": "settle", "category": "Settle-up" },
+        { "details": "old1", "category": "food" },
+        { "details": "old2", "category": "food" }
+      ] },
+      "expected": { "visible": ["new1", "new2", "settle"], "collapsed": 2 }
+    },
+    {
+      "name": "collapse-empty",
+      "fn": "collapseOlder",
+      "input": { "expenses": [] },
+      "expected": { "visible": [], "collapsed": 0 }
+    },
+    {
+      "name": "collapse-no-settle-up-shows-all",
+      "fn": "collapseOlder",
+      "input": { "expenses": [
+        { "details": "x", "category": "food" },
+        { "details": "y", "category": "food" }
+      ] },
+      "expected": { "visible": ["x", "y"], "collapsed": 0 }
+    }
+  ]
+}

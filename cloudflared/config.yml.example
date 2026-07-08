@@ -1,0 +1,30 @@
+# Cloudflare tunnel - LOCALLY-managed config (advanced / optional).
+#
+# By default the connector runs *remotely-managed*: you create a tunnel in the Cloudflare dashboard, add the
+# public hostnames there, and only put its token in .env (CLOUDFLARE_TUNNEL_TOKEN). That's all most people
+# need. Copy this file to `cloudflared/config.yml` ONLY if you want to manage ingress here instead (custom
+# path routing, extra services, no dashboard) - the connector auto-switches to this file when it exists.
+#
+# One-time setup, with cloudflared installed on your machine (or `docker run cloudflare/cloudflared`):
+#   cloudflared tunnel login                       # opens a browser to authorize your zone
+#   cloudflared tunnel create cleave               # prints a TUNNEL UUID + writes a credentials JSON
+#   cloudflared tunnel route dns cleave your-host.example.com
+# Then: put that credentials JSON next to this file as `cloudflared/credentials.json`, fill in the UUID +
+# hostnames below, and `docker compose --profile tunnel up -d cloudflared`. (config.yml + credentials.json
+# are gitignored.)
+
+tunnel: 00000000-0000-0000-0000-000000000000        # your tunnel UUID (from `tunnel create`)
+credentials-file: /etc/cloudflared/credentials.json  # the file you dropped in cloudflared/
+
+# Each public hostname -> an internal stack on its own :8000. Drop the ones you don't run.
+ingress:
+  - hostname: your-host.example.com
+    service: http://api:8000            # the default/real instance
+  - hostname: dev.your-host.example.com
+    service: http://api-dev:8000        # --profile dev sandbox
+  - hostname: demo.your-host.example.com
+    service: http://api-demo:8000       # --profile demo
+  - hostname: push.your-host.example.com
+    service: http://relay:8000          # the push relay (registration form + /push)
+  # Required catch-all: anything unmatched gets a 404 instead of reaching a service.
+  - service: http_status:404

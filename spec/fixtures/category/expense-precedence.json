@@ -1,0 +1,28 @@
+{
+  "module": "category",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/CategoryMapping.swift",
+  "note": "resolve(expenseCategory:lookup:sources:). Precedence: local lookup (manual->mappedByYou, ondevice->mappedByAI) -> Plaid built-in -> Splitwise map -> passthrough (canonical name -> explicit, else raw). Empty/null -> {null, raw}.",
+  "cases": [
+    { "name": "local-map-manual", "fn": "resolveExpense",
+      "input": { "raw": "CUSTOM", "lookup": { "CUSTOM": "Shopping" }, "sources": { "CUSTOM": "manual" } },
+      "expected": { "category": "Shopping", "source": "mappedByYou" } },
+    { "name": "local-map-ondevice", "fn": "resolveExpense",
+      "input": { "raw": "CUSTOM", "lookup": { "CUSTOM": "Shopping" }, "sources": { "CUSTOM": "ondevice" } },
+      "expected": { "category": "Shopping", "source": "mappedByAI" } },
+    { "name": "plaid-before-splitwise", "fn": "resolveExpense",
+      "input": { "raw": "FOOD_AND_DRINK_GROCERIES", "lookup": {}, "sources": {} },
+      "expected": { "category": "Groceries", "source": "deterministic" } },
+    { "name": "splitwise-canonicalizes", "fn": "resolveExpense",
+      "input": { "raw": "Dining out", "lookup": {}, "sources": {} },
+      "expected": { "category": "Dining", "source": "deterministic" } },
+    { "name": "explicit-canonical", "fn": "resolveExpense",
+      "input": { "raw": "Dining", "lookup": {}, "sources": {} },
+      "expected": { "category": "Dining", "source": "explicit" } },
+    { "name": "raw-passthrough", "fn": "resolveExpense",
+      "input": { "raw": "ZZZ_UNKNOWN", "lookup": {}, "sources": {} },
+      "expected": { "category": "ZZZ_UNKNOWN", "source": "raw" } },
+    { "name": "null-raw", "fn": "resolveExpense",
+      "input": { "raw": null, "lookup": {}, "sources": {} },
+      "expected": { "category": null, "source": "raw" } }
+  ]
+}

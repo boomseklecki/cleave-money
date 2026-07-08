@@ -1,0 +1,262 @@
+# The DEFAULT stack (no profile) is the real, single self-hosted instance: `db`/`api` on :8000 reading `.env`.
+# `docker compose up -d` is all a self-hoster needs. Optional side stacks are opt-in profiles that share the
+# one MinIO via separate buckets: `--profile dev` (sandbox Plaid + synthetic data, :8001), `--profile demo`
+# (public demo, :8002), `--profile test` (ephemeral CI DB). Expose the stacks behind a reverse proxy or a
+# Cloudflare tunnel (see docs/OPERATIONS.md); the iOS app talks to the public https hostname, never these.
+#
+# SECURITY: the Postgres/MinIO passwords below default to dev values via ${VAR:-default}. They're only
+# reachable on the internal compose network, but for a hardened/exposed deploy set POSTGRES_PASSWORD and
+# MINIO_ACCESS_KEY / MINIO_SECRET_KEY (which are also the MinIO server's root creds) to strong secrets in
+# your .env. If several stacks (dev/demo) share this MinIO, use the SAME keys in each stack's env file.
+services:
+  db:
+    image: postgres:16
+    pull_policy: never
+    environment:
+      POSTGRES_USER: cleave
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cleave}
+      POSTGRES_DB: cleave
+    volumes:
+      - main_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cleave"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./backend
+    env_file:
+      - .env            # the real instance config (production Plaid). Copy from .env.example.
+    environment:
+      # Pin the DB target regardless of the .env DATABASE_URL placeholder (which still says @db).
+      DATABASE_URL: postgresql+asyncpg://cleave:${POSTGRES_PASSWORD:-cleave}@db:5432/cleave
+      # Push goes through the relay (PUSH_RELAY_API_KEY comes from .env). Point at the VPS host instead
+      # (your relay's public URL) if you don't run the relay container locally.
+      PUSH_RELAY_URL: http://relay:8000
+    volumes:
+      # SSH material for restic's native sftp: off-device target (e.g. a NAS). Holds id_ed25519 +
+      # known_hosts + config; root-owned, key 0600 (OpenSSH refuses looser). Gitignored (secrets/). Optional:
+      # absent/empty dir is harmless unless an sftp: target is configured. See docs/OPERATIONS.md.
+      - ./secrets/ssh:/root/.ssh:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    ports:
+      - "8000:8000"     # real instance (put behind your reverse proxy / tunnel - see docs/OPERATIONS.md)
+
+  minio:
+    image: minio/minio:latest
+    pull_policy: never
+    command: server /data --console-address ":9001"
+    environment:
+      # The server's root creds derive from the app-side keys (auto-loaded .env), so there's ONE source of
+      # truth: set MINIO_ACCESS_KEY + MINIO_SECRET_KEY and both the app and the server use them.
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-cleave}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-cleave-secret}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- Push relay (standalone) ---
+  # Holds the official APNs .p8 and forwards push for self-hosted instances, so the open-source backend
+  # carries no Apple creds. Self-hosters register at their relay's public URL for an instance key and set it
+  # as PUSH_RELAY_API_KEY on their api. Separable: `docker compose up relay` alone, or move it to a VPS and
+  # point each api's PUSH_RELAY_URL at that host. Reads .env.relay (APNS_* + ADMIN_TOKEN).
+  relay:
+    build: ./relay
+    restart: unless-stopped
+    env_file:
+      - .env.relay
+    environment:
+      DB_PATH: /data/relay.db
+    volumes:
+      - relay_data:/data
+    ports:
+      - "8003:8000"     # push relay
+
+  # --- Dev sandbox stack (profile: dev) ---
+  # Optional side-by-side sandbox: PLAID_ENV=sandbox + synthetic seed data, so you can develop without
+  # touching the real instance. `docker compose --profile dev up -d`. Reads .env.dev.
+  db-dev:
+    image: postgres:16
+    pull_policy: never
+    profiles: ["dev"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cleave
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cleave}
+      POSTGRES_DB: cleave
+    volumes:
+      - dev_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cleave"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api-dev:
+    build: ./backend
+    profiles: ["dev"]
+    restart: unless-stopped
+    env_file:
+      - .env.dev        # sandbox config (PLAID_ENV=sandbox)
+    environment:
+      DATABASE_URL: postgresql+asyncpg://cleave:${POSTGRES_PASSWORD:-cleave}@db-dev:5432/cleave
+    depends_on:
+      db-dev:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    ports:
+      - "8001:8000"     # dev sandbox
+
+  # --- Isolated test stack (profile: test) ---
+  # An ephemeral Postgres + a second API pointed at it, so the integration suite always runs
+  # against a clean DB regardless of real data. Started only with `--profile test`.
+  db-test:
+    image: postgres:16
+    pull_policy: never
+    profiles: ["test"]
+    environment:
+      POSTGRES_USER: cleave
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cleave}
+      POSTGRES_DB: cleave
+    tmpfs:
+      - /var/lib/postgresql/data   # ephemeral: wiped on container removal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cleave"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api-test:
+    build: ./backend
+    pull_policy: never
+    profiles: ["test"]
+    env_file:
+      - .env.dev
+    environment:
+      # Override the DB target + force open auth so the integration suite (which calls endpoints
+      # without a token) isn't affected by AUTH_REQUIRED=true in .env.dev. Auth enforcement itself is
+      # covered by tests that monkeypatch settings. Everything else reused from .env.dev.
+      DATABASE_URL: postgresql+asyncpg://cleave:${POSTGRES_PASSWORD:-cleave}@db-test:5432/cleave
+      AUTH_REQUIRED: "false"
+      API_TOKENS: "{}"
+      # test-backend.sh migrates explicitly via `exec` right after `up`; keep the image's start-up
+      # auto-migrate OFF here so the two don't race on the fresh tmpfs DB (Alembic takes no lock).
+      RUN_MIGRATIONS: "false"
+    depends_on:
+      db-test:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  # --- Demo stack (profile: demo) ---
+  # Public, disposable demo for TestFlight: guest login (DEMO_MODE) auto-seeds each tester an isolated
+  # sample app; Plaid sandbox; no Splitwise. `docker compose --profile demo up -d`; migrate api-demo.
+  db-demo:
+    image: postgres:16
+    pull_policy: never
+    profiles: ["demo"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cleave
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cleave}
+      POSTGRES_DB: cleave
+    volumes:
+      - db_data_demo:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cleave"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api-demo:
+    build: ./backend
+    pull_policy: never
+    profiles: ["demo"]
+    restart: unless-stopped
+    env_file:
+      - .env.demo
+    environment:
+      DATABASE_URL: postgresql+asyncpg://cleave:${POSTGRES_PASSWORD:-cleave}@db-demo:5432/cleave
+      MINIO_BUCKET: receipts-demo
+      BACKUPS_BUCKET: backups-demo
+      PUSH_RELAY_URL: http://relay:8000   # demo push completes the app (key in .env.demo)
+    depends_on:
+      db-demo:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    ports:
+      - "8002:8000"     # demo
+
+  # --- Cloudflare tunnel connector (profile: tunnel) ---
+  # Exposes the stacks publicly over HTTPS. Two modes, auto-selected by the entrypoint (see cloudflared/):
+  #   * remotely-managed (default): create a tunnel in the Cloudflare dashboard, add public hostnames there,
+  #     each an internal target on its own :8000, and set only CLOUDFLARE_TUNNEL_TOKEN in .env:
+  #       your-host.example.com       -> http://api:8000        (the default/real instance)
+  #       dev.your-host.example.com   -> http://api-dev:8000    (--profile dev sandbox)
+  #       demo.your-host.example.com  -> http://api-demo:8000   (--profile demo)
+  #       push.your-host.example.com  -> http://relay:8000      (the push relay: registration form + /push)
+  #   * locally-managed (advanced): copy cloudflared/config.yml.example -> cloudflared/config.yml (+ drop the
+  #     tunnel credentials JSON alongside it) to manage ingress yourself. The connector switches to it
+  #     automatically when that file exists. Start with `--profile tunnel`.
+  cloudflared:
+    build: ./cloudflared   # thin wrapper: the cloudflared binary + a mode-selecting entrypoint (needs a shell)
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    environment:
+      # Used only in remotely-managed mode; ignored when cloudflared/config.yml is present.
+      - CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:-}
+    volumes:
+      # config.yml (+ credentials.json) here => locally-managed; absent => token/remotely-managed. Read-only.
+      - ./cloudflared:/etc/cloudflared:ro
+
+  # --- Tailscale connector (profile: tailscale) ---
+  # An alternative to the Cloudflare tunnel: join your tailnet and `serve` the api container so the backend
+  # is reachable at https://${TS_HOSTNAME}.<your-tailnet>.ts.net from any device on your tailnet (install
+  # Tailscale on your phone and point the app there). TAILNET-PRIVATE by default - not public. Set TS_AUTHKEY
+  # (a tailnet auth key) in .env and copy tailscale/serve.json.example -> tailscale/serve.json. For public
+  # exposure use Tailscale Funnel (see tailscale/serve.json.example + docs/OPERATIONS.md). `--profile tailscale`.
+  tailscale:
+    image: tailscale/tailscale:latest
+    profiles: ["tailscale"]
+    hostname: ${TS_HOSTNAME:-cleave}
+    restart: unless-stopped
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY:-}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/serve.json   # serves the tailnet HTTPS -> http://api:8000
+      - TS_USERSPACE=true                    # userspace networking - no host NET_ADMIN needed
+      - TS_EXTRA_ARGS=${TS_EXTRA_ARGS:-}
+    volumes:
+      - tailscale_state:/var/lib/tailscale
+      - ./tailscale:/config:ro
+
+volumes:
+  # The main + dev DB volume names are interpolated so a fresh self-hoster gets clean names (db_data/
+  # db_data_dev) while an existing operator can bind their current volumes via MAIN_DB_VOLUME/DEV_DB_VOLUME
+  # in .env (e.g. db_data_prod), with no data migration.
+  main_db:
+    name: ${MAIN_DB_VOLUME:-db_data}
+  dev_db:
+    name: ${DEV_DB_VOLUME:-db_data_dev}
+  minio_data:
+    name: cleave_minio_data
+  db_data_demo:
+    name: cleave_db_data_demo
+  relay_data:
+    name: cleave_relay_data
+  tailscale_state:            # tailnet node identity/state (profile: tailscale)
+    name: cleave_tailscale_state

@@ -1,0 +1,56 @@
+{
+  "module": "merchant-brand",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/RelatedTransactions.swift",
+  "note": "amountsClose: hi-lo <= 1 OR hi*4 <= lo*5 (within $1 or 25%). group(): filter items by merchant strictness (fuzzy=any shared token, balanced=overlap>0.5, strict=one token set contains the other, exact=same merchant key) and an amount constraint, sorted date-desc; returns labels. commonTokens: sorted shared tokens. displayName: title-cased first 3 cleaned words.",
+  "cases": [
+    { "name": "close-within-dollar", "fn": "amountsClose", "input": { "a": "10.00", "b": "10.50" }, "expected": { "close": true } },
+    { "name": "close-within-25pct", "fn": "amountsClose", "input": { "a": "50", "b": "40" }, "expected": { "close": true } },
+    { "name": "not-close", "fn": "amountsClose", "input": { "a": "50", "b": "30" }, "expected": { "close": false } },
+
+    { "name": "group-fuzzy", "fn": "relatedGroup",
+      "input": { "seedDescription": "TRADER JOE", "strictness": "fuzzy", "amount": "any",
+        "items": [
+          { "label": "a", "details": "TRADER JOE'S #455", "amount": "50", "date": "2025-06-15T12:00:00Z" },
+          { "label": "b", "details": "TRADER JOE'S #500", "amount": "30", "date": "2025-06-16T12:00:00Z" },
+          { "label": "c", "details": "JOE'S CRAB SHACK", "amount": "40", "date": "2025-06-17T12:00:00Z" }
+        ] },
+      "expected": { "order": ["c", "b", "a"] } },
+
+    { "name": "group-balanced", "fn": "relatedGroup",
+      "input": { "seedDescription": "TRADER JOE", "strictness": "balanced", "amount": "any",
+        "items": [
+          { "label": "a", "details": "TRADER JOE'S #455", "amount": "50", "date": "2025-06-15T12:00:00Z" },
+          { "label": "b", "details": "TRADER JOE'S #500", "amount": "30", "date": "2025-06-16T12:00:00Z" },
+          { "label": "c", "details": "JOE'S CRAB SHACK", "amount": "40", "date": "2025-06-17T12:00:00Z" }
+        ] },
+      "expected": { "order": ["b", "a"] } },
+
+    { "name": "group-exact-key", "fn": "relatedGroup",
+      "input": { "seedDescription": "TRADER JOE", "strictness": "exact", "amount": "any",
+        "items": [
+          { "label": "a", "details": "TRADER JOE'S #455", "amount": "50", "date": "2025-06-15T12:00:00Z" },
+          { "label": "b", "details": "TRADER JOE'S #500", "amount": "30", "date": "2025-06-16T12:00:00Z" },
+          { "label": "c", "details": "JOE'S CRAB SHACK", "amount": "40", "date": "2025-06-17T12:00:00Z" }
+        ] },
+      "expected": { "order": ["b", "a"] } },
+
+    { "name": "group-fuzzy-amount-close", "fn": "relatedGroup",
+      "input": { "seedDescription": "TRADER JOE", "seedAmount": "50", "strictness": "fuzzy", "amount": "close",
+        "items": [
+          { "label": "a", "details": "TRADER JOE'S #455", "amount": "50", "date": "2025-06-15T12:00:00Z" },
+          { "label": "b", "details": "TRADER JOE'S #500", "amount": "30", "date": "2025-06-16T12:00:00Z" },
+          { "label": "c", "details": "JOE'S CRAB SHACK", "amount": "40", "date": "2025-06-17T12:00:00Z" }
+        ] },
+      "expected": { "order": ["c", "a"] } },
+
+    { "name": "common-tokens-two", "fn": "commonTokens",
+      "input": { "items": [ { "details": "TRADER JOE'S #455" }, { "details": "TRADER JOE'S #500" } ] },
+      "expected": { "tokens": ["joe", "trader"] } },
+    { "name": "common-tokens-three", "fn": "commonTokens",
+      "input": { "items": [ { "details": "TRADER JOE'S #455" }, { "details": "TRADER JOE'S #500" }, { "details": "JOE'S CRAB SHACK" } ] },
+      "expected": { "tokens": ["joe"] } },
+
+    { "name": "display-name-pos", "fn": "displayName", "input": { "seedDescription": "SQ *BLUE BOTTLE 0123" }, "expected": { "displayName": "Blue Bottle" } },
+    { "name": "display-name-store-number", "fn": "displayName", "input": { "seedDescription": "GET GO #1234" }, "expected": { "displayName": "Get Go" } }
+  ]
+}

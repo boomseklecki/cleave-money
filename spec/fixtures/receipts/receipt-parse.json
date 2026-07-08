@@ -1,0 +1,15 @@
+{
+  "module": "receipts",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/ReceiptHeuristics.swift",
+  "note": "Model-free receipt OCR parsing (fallback when Apple Intelligence is unavailable). merchant = first non-empty trimmed line. total = max amount on a line containing 'total' (but not 'subtotal'); else max amount anywhere. Amounts match /\\d[\\d,]*\\.\\d{2}/ with commas stripped. (The date field uses NSDataDetector and is not captured here.)",
+  "cases": [
+    { "name": "merchant-first-line", "fn": "receiptMerchant", "input": { "text": "  Blue Bottle  \nItem 5.00" }, "expected": { "merchant": "Blue Bottle" } },
+    { "name": "merchant-empty", "fn": "receiptMerchant", "input": { "text": "" }, "expected": { "merchant": null } },
+
+    { "name": "total-line-preferred-over-subtotal", "fn": "receiptTotal", "input": { "text": "Blue Bottle\nSubtotal 10.00\nTax 1.00\nTotal 11.00" }, "expected": { "total": "11.00" } },
+    { "name": "no-total-line-uses-max", "fn": "receiptTotal", "input": { "text": "Store\nItem A 5.00\nItem B 8.00" }, "expected": { "total": "8.00" } },
+    { "name": "subtotal-excluded-falls-back-to-max", "fn": "receiptTotal", "input": { "text": "Shop\nSubtotal 20.00" }, "expected": { "total": "20.00" } },
+    { "name": "comma-thousands", "fn": "receiptTotal", "input": { "text": "Big Store\nTotal 1,234.56" }, "expected": { "total": "1234.56" } },
+    { "name": "no-amounts-null", "fn": "receiptTotal", "input": { "text": "Just text\nNo prices here" }, "expected": { "total": null } }
+  ]
+}

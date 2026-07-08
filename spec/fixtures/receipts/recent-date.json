@@ -1,0 +1,12 @@
+{
+  "module": "receipts",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/ExpensePrefill.swift (recentReceiptDate)",
+  "note": "recentReceiptDate(date, now, window=60): clamps a scanned date to [today-window, today] (start of day); a future or too-old date -> today; nil -> today. Guards a wrong-year OCR extraction. Dates noon-UTC; result asserted as year-month-day. now = 2025-06-15, window 60 -> earliest 2025-04-16.",
+  "cases": [
+    { "name": "within-window", "fn": "recentReceiptDate", "input": { "date": "2025-06-10T12:00:00Z", "now": "2025-06-15T12:00:00Z", "window": 60 }, "expected": { "year": 2025, "month": 6, "day": 10 } },
+    { "name": "boundary-earliest-included", "fn": "recentReceiptDate", "input": { "date": "2025-04-16T12:00:00Z", "now": "2025-06-15T12:00:00Z", "window": 60 }, "expected": { "year": 2025, "month": 4, "day": 16 } },
+    { "name": "future-clamped-to-today", "fn": "recentReceiptDate", "input": { "date": "2025-06-20T12:00:00Z", "now": "2025-06-15T12:00:00Z", "window": 60 }, "expected": { "year": 2025, "month": 6, "day": 15 } },
+    { "name": "too-old-clamped-to-today", "fn": "recentReceiptDate", "input": { "date": "2025-01-01T12:00:00Z", "now": "2025-06-15T12:00:00Z", "window": 60 }, "expected": { "year": 2025, "month": 6, "day": 15 } },
+    { "name": "null-is-today", "fn": "recentReceiptDate", "input": { "date": null, "now": "2025-06-15T12:00:00Z", "window": 60 }, "expected": { "year": 2025, "month": 6, "day": 15 } }
+  ]
+}

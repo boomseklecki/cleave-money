@@ -1,0 +1,44 @@
+{
+  "module": "split-math",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SplitMath.swift",
+  "note": "Money is decimal strings. Splits are returned in participants order. Empty participants falls back to [payer].",
+  "cases": [
+    {
+      "name": "equal-evenly-divisible",
+      "fn": "equalSplit",
+      "input": { "amount": "10.00", "payer": "alice", "participants": ["alice", "bob"] },
+      "expected": { "splits": [
+        { "userIdentifier": "alice", "paidShare": "10.00", "owedShare": "5.00" },
+        { "userIdentifier": "bob", "paidShare": "0.00", "owedShare": "5.00" }
+      ] }
+    },
+    {
+      "name": "equal-remainder-pennies-to-earliest",
+      "fn": "equalSplit",
+      "input": { "amount": "10.01", "payer": "a", "participants": ["a", "b", "c"] },
+      "expected": { "splits": [
+        { "userIdentifier": "a", "paidShare": "10.01", "owedShare": "3.34" },
+        { "userIdentifier": "b", "paidShare": "0.00", "owedShare": "3.34" },
+        { "userIdentifier": "c", "paidShare": "0.00", "owedShare": "3.33" }
+      ] }
+    },
+    {
+      "name": "equal-three-even",
+      "fn": "equalSplit",
+      "input": { "amount": "9.00", "payer": "a", "participants": ["a", "b", "c"] },
+      "expected": { "splits": [
+        { "userIdentifier": "a", "paidShare": "9.00", "owedShare": "3.00" },
+        { "userIdentifier": "b", "paidShare": "0.00", "owedShare": "3.00" },
+        { "userIdentifier": "c", "paidShare": "0.00", "owedShare": "3.00" }
+      ] }
+    },
+    {
+      "name": "equal-empty-participants-falls-back-to-payer",
+      "fn": "equalSplit",
+      "input": { "amount": "5.00", "payer": "a", "participants": [] },
+      "expected": { "splits": [
+        { "userIdentifier": "a", "paidShare": "5.00", "owedShare": "5.00" }
+      ] }
+    }
+  ]
+}

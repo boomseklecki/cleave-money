@@ -1,0 +1,14 @@
+{
+  "module": "category",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/PlaidCategory.swift",
+  "note": "humanized: SCREAMING_SNAKE -> Title Case. displayLabel: humanize only if the label is Plaid-format (all uppercase/underscore/digit with >=1 letter), else pass through unchanged.",
+  "cases": [
+    { "name": "humanized-long", "fn": "plaidHumanized", "input": { "raw": "PERSONAL_CARE_GYMS_AND_FITNESS_CENTERS" }, "expected": { "value": "Personal Care Gyms And Fitness Centers" } },
+    { "name": "humanized-food", "fn": "plaidHumanized", "input": { "raw": "FOOD_AND_DRINK" }, "expected": { "value": "Food And Drink" } },
+    { "name": "display-plaid-format", "fn": "plaidDisplayLabel", "input": { "raw": "GENERAL_SERVICES" }, "expected": { "value": "General Services" } },
+    { "name": "display-single-word", "fn": "plaidDisplayLabel", "input": { "raw": "INCOME" }, "expected": { "value": "Income" } },
+    { "name": "display-splitwise-passthrough", "fn": "plaidDisplayLabel", "input": { "raw": "Dining out" }, "expected": { "value": "Dining out" } },
+    { "name": "display-slashed-passthrough", "fn": "plaidDisplayLabel", "input": { "raw": "TV/Phone/Internet" }, "expected": { "value": "TV/Phone/Internet" } },
+    { "name": "display-gas-fuel-passthrough", "fn": "plaidDisplayLabel", "input": { "raw": "Gas/fuel" }, "expected": { "value": "Gas/fuel" } }
+  ]
+}

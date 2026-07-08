@@ -1,0 +1,14 @@
+{
+  "module": "subscriptions",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SubscriptionDetector.swift",
+  "note": "matches(amount, rule): both > 0 and max/min <= 2.0 (a ~2x band, so a price increase keeps matching).",
+  "cases": [
+    { "name": "equal", "fn": "ruleMatches", "input": { "amount": "10", "ruleAmount": "10" }, "expected": { "matches": true } },
+    { "name": "within-band", "fn": "ruleMatches", "input": { "amount": "15", "ruleAmount": "10" }, "expected": { "matches": true } },
+    { "name": "exactly-2x", "fn": "ruleMatches", "input": { "amount": "20", "ruleAmount": "10" }, "expected": { "matches": true } },
+    { "name": "over-2x", "fn": "ruleMatches", "input": { "amount": "21", "ruleAmount": "10" }, "expected": { "matches": false } },
+    { "name": "price-increase-still-matches", "fn": "ruleMatches", "input": { "amount": "15.99", "ruleAmount": "12.99" }, "expected": { "matches": true } },
+    { "name": "zero-amount", "fn": "ruleMatches", "input": { "amount": "0", "ruleAmount": "10" }, "expected": { "matches": false } },
+    { "name": "zero-rule", "fn": "ruleMatches", "input": { "amount": "10", "ruleAmount": "0" }, "expected": { "matches": false } }
+  ]
+}

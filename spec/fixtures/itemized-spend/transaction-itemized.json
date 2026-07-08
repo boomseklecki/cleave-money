@@ -1,0 +1,17 @@
+{
+  "module": "itemized-spend",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/ItemizedSpend.swift",
+  "note": "transactionDetailed(for transaction, lookup): a transaction is wholly the viewer's, so each item counts at full price under its own (canonicalized) category, and the leftover (amount - sum item prices) falls under the transaction's effective category. Items with a null category use the effective category. No items -> empty. byCategory sums non-null-category entries; total sums all amounts.",
+  "cases": [
+    { "name": "items-plus-remainder-to-effective", "fn": "transactionItemized",
+      "input": { "lookup": {},
+        "transaction": { "amount": "100", "category": "FOOD_AND_DRINK", "source": "plaid",
+          "items": [ { "category": "Groceries", "price": "30" }, { "category": null, "price": "20" } ] } },
+      "expected": { "byCategory": { "Groceries": "30", "Dining": "70" }, "total": "100" } },
+
+    { "name": "no-items-empty", "fn": "transactionItemized",
+      "input": { "lookup": {},
+        "transaction": { "amount": "10", "category": "FOOD_AND_DRINK", "source": "plaid", "items": [] } },
+      "expected": { "byCategory": {} } }
+  ]
+}

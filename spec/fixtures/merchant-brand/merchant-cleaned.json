@@ -1,0 +1,16 @@
+{
+  "module": "merchant-brand",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/Brand.swift (MerchantParse)",
+  "note": "cleaned: strip a leading processor prefix (a <=8-char alnum/space token ending in '*'), drop interior store-ref tokens (>=3 digits, or pure punctuation), then drop trailing store-number/state/USA noise. Short brand numbers (5 Guys) are kept. Falls back to the trimmed original if cleaning empties it.",
+  "cases": [
+    { "name": "sq-prefix-and-store-number", "fn": "merchantCleaned", "input": { "merchant": "SQ *BLUE BOTTLE 0123" }, "expected": { "cleaned": "BLUE BOTTLE" } },
+    { "name": "tst-prefix", "fn": "merchantCleaned", "input": { "merchant": "TST* CHIPOTLE" }, "expected": { "cleaned": "CHIPOTLE" } },
+    { "name": "paypal-prefix", "fn": "merchantCleaned", "input": { "merchant": "PAYPAL *SOMETHING" }, "expected": { "cleaned": "SOMETHING" } },
+    { "name": "interior-ref-removed", "fn": "merchantCleaned", "input": { "merchant": "KFC J625141 STEUBENVILLE" }, "expected": { "cleaned": "KFC STEUBENVILLE" } },
+    { "name": "hash-store-number", "fn": "merchantCleaned", "input": { "merchant": "GET GO #1234" }, "expected": { "cleaned": "GET GO" } },
+    { "name": "trailing-state", "fn": "merchantCleaned", "input": { "merchant": "NETFLIX.COM CA" }, "expected": { "cleaned": "NETFLIX.COM" } },
+    { "name": "short-brand-number-kept", "fn": "merchantCleaned", "input": { "merchant": "5 GUYS" }, "expected": { "cleaned": "5 GUYS" } },
+    { "name": "no-noise-passthrough", "fn": "merchantCleaned", "input": { "merchant": "ANTHROPIC CLAUDE SUB" }, "expected": { "cleaned": "ANTHROPIC CLAUDE SUB" } },
+    { "name": "empty-after-clean-falls-back", "fn": "merchantCleaned", "input": { "merchant": "SQ *0123" }, "expected": { "cleaned": "SQ *0123" } }
+  ]
+}

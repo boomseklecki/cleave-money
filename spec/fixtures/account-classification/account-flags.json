@@ -1,0 +1,51 @@
+{
+  "module": "account-classification",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/AccountClassification.swift (Account extension)",
+  "note": "Account computed props. kind: kindOverride wins else classify(type). countsInSpending = includeInSpending ?? (cashFlow || liability). countsInCashFlow = includeInCashFlow ?? (cashFlow). isPlaid = plaidAccountId != null; isImported = !isPlaid && institutionName non-empty; isManual = neither. displayLabel = non-blank displayName else name. maskLabel = non-blank mask -> bullet form else null.",
+  "cases": [
+    { "name": "plaid-credit-card", "fn": "accountFlags",
+      "input": { "account": { "name": "Amex", "type": "credit card", "plaidAccountId": "acc1", "mask": "1234" } },
+      "expected": { "kind": "liability", "countsInSpending": true, "countsInCashFlow": false,
+                    "isPlaid": true, "isImported": false, "isManual": false, "displayLabel": "Amex", "maskLabel": "•••• 1234" } },
+
+    { "name": "plaid-checking", "fn": "accountFlags",
+      "input": { "account": { "name": "Checking", "type": "checking", "plaidAccountId": "acc2" } },
+      "expected": { "kind": "cash_flow", "countsInSpending": true, "countsInCashFlow": true,
+                    "isPlaid": true, "isImported": false, "isManual": false, "displayLabel": "Checking", "maskLabel": null } },
+
+    { "name": "plaid-investment-holdings", "fn": "accountFlags",
+      "input": { "account": { "name": "Brokerage", "type": "investment", "plaidAccountId": "acc3" } },
+      "expected": { "kind": "savings", "countsInSpending": false, "countsInCashFlow": false,
+                    "isPlaid": true, "isImported": false, "isManual": false, "displayLabel": "Brokerage", "maskLabel": null } },
+
+    { "name": "kind-override-wins", "fn": "accountFlags",
+      "input": { "account": { "name": "Card", "type": "credit card", "kindOverride": "cash_flow", "plaidAccountId": "acc4" } },
+      "expected": { "kind": "cash_flow", "countsInSpending": true, "countsInCashFlow": true,
+                    "isPlaid": true, "isImported": false, "isManual": false, "displayLabel": "Card", "maskLabel": null } },
+
+    { "name": "include-flags-override-classification", "fn": "accountFlags",
+      "input": { "account": { "name": "Checking", "type": "checking", "plaidAccountId": "acc5", "includeInSpending": false, "includeInCashFlow": false } },
+      "expected": { "kind": "cash_flow", "countsInSpending": false, "countsInCashFlow": false,
+                    "isPlaid": true, "isImported": false, "isManual": false, "displayLabel": "Checking", "maskLabel": null } },
+
+    { "name": "imported-has-institution-no-plaid", "fn": "accountFlags",
+      "input": { "account": { "name": "Apple Card", "type": "credit card", "institutionName": "Apple Card" } },
+      "expected": { "kind": "liability", "countsInSpending": true, "countsInCashFlow": false,
+                    "isPlaid": false, "isImported": true, "isManual": false, "displayLabel": "Apple Card", "maskLabel": null } },
+
+    { "name": "manual-no-plaid-no-institution", "fn": "accountFlags",
+      "input": { "account": { "name": "Cash", "type": "checking" } },
+      "expected": { "kind": "cash_flow", "countsInSpending": true, "countsInCashFlow": true,
+                    "isPlaid": false, "isImported": false, "isManual": true, "displayLabel": "Cash", "maskLabel": null } },
+
+    { "name": "display-name-overrides-name", "fn": "accountFlags",
+      "input": { "account": { "name": "Plaid Name", "displayName": "My Checking", "type": "checking", "plaidAccountId": "acc6" } },
+      "expected": { "kind": "cash_flow", "countsInSpending": true, "countsInCashFlow": true,
+                    "isPlaid": true, "isImported": false, "isManual": false, "displayLabel": "My Checking", "maskLabel": null } },
+
+    { "name": "blank-mask-is-null", "fn": "accountFlags",
+      "input": { "account": { "name": "Checking", "type": "checking", "plaidAccountId": "acc7", "mask": "   " } },
+      "expected": { "kind": "cash_flow", "countsInSpending": true, "countsInCashFlow": true,
+                    "isPlaid": true, "isImported": false, "isManual": false, "displayLabel": "Checking", "maskLabel": null } }
+  ]
+}

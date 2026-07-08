@@ -1,0 +1,22 @@
+{
+  "module": "subscriptions",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SubscriptionDetector.swift",
+  "note": "Subscription computed props: annualCost = latestAmount * cadence.periodsPerYear; monthlyEquivalent = annualCost/12 (given only when it terminates exactly); increased = priorAmount != null && latestAmount > priorAmount.",
+  "cases": [
+    { "name": "monthly-increase", "fn": "subscriptionProps",
+      "input": { "cadence": "monthly", "latestAmount": "15.99", "priorAmount": "12.99" },
+      "expected": { "annualCost": "191.88", "monthlyEquivalent": "15.99", "increased": true } },
+    { "name": "monthly-no-prior", "fn": "subscriptionProps",
+      "input": { "cadence": "monthly", "latestAmount": "9.99", "priorAmount": null },
+      "expected": { "annualCost": "119.88", "monthlyEquivalent": "9.99", "increased": false } },
+    { "name": "yearly", "fn": "subscriptionProps",
+      "input": { "cadence": "yearly", "latestAmount": "120", "priorAmount": null },
+      "expected": { "annualCost": "120", "monthlyEquivalent": "10", "increased": false } },
+    { "name": "quarterly-no-increase", "fn": "subscriptionProps",
+      "input": { "cadence": "quarterly", "latestAmount": "30", "priorAmount": "30" },
+      "expected": { "annualCost": "120", "monthlyEquivalent": "10", "increased": false } },
+    { "name": "weekly-decrease", "fn": "subscriptionProps",
+      "input": { "cadence": "weekly", "latestAmount": "5", "priorAmount": "10" },
+      "expected": { "annualCost": "260", "increased": false } }
+  ]
+}

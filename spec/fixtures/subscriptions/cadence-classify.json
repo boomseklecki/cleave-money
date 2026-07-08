@@ -1,0 +1,25 @@
+{
+  "module": "subscriptions",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SubscriptionDetector.swift",
+  "note": "SubscriptionCadence.classify(medianDays): weekly 5..9, biweekly 11..17, monthly 24..37, quarterly 80..100, yearly 330..400; gaps and out-of-range -> null. Boundaries inclusive.",
+  "cases": [
+    { "name": "weekly-low", "fn": "cadenceClassify", "input": { "medianDays": 5 }, "expected": { "cadence": "weekly" } },
+    { "name": "weekly-mid", "fn": "cadenceClassify", "input": { "medianDays": 7 }, "expected": { "cadence": "weekly" } },
+    { "name": "weekly-high", "fn": "cadenceClassify", "input": { "medianDays": 9 }, "expected": { "cadence": "weekly" } },
+    { "name": "below-weekly", "fn": "cadenceClassify", "input": { "medianDays": 4 }, "expected": { "cadence": null } },
+    { "name": "gap-weekly-biweekly", "fn": "cadenceClassify", "input": { "medianDays": 10 }, "expected": { "cadence": null } },
+    { "name": "biweekly-low", "fn": "cadenceClassify", "input": { "medianDays": 11 }, "expected": { "cadence": "biweekly" } },
+    { "name": "biweekly-high", "fn": "cadenceClassify", "input": { "medianDays": 17 }, "expected": { "cadence": "biweekly" } },
+    { "name": "gap-biweekly-monthly", "fn": "cadenceClassify", "input": { "medianDays": 18 }, "expected": { "cadence": null } },
+    { "name": "monthly-low", "fn": "cadenceClassify", "input": { "medianDays": 24 }, "expected": { "cadence": "monthly" } },
+    { "name": "monthly-mid", "fn": "cadenceClassify", "input": { "medianDays": 30 }, "expected": { "cadence": "monthly" } },
+    { "name": "monthly-high", "fn": "cadenceClassify", "input": { "medianDays": 37 }, "expected": { "cadence": "monthly" } },
+    { "name": "gap-monthly-quarterly", "fn": "cadenceClassify", "input": { "medianDays": 38 }, "expected": { "cadence": null } },
+    { "name": "quarterly-low", "fn": "cadenceClassify", "input": { "medianDays": 80 }, "expected": { "cadence": "quarterly" } },
+    { "name": "quarterly-high", "fn": "cadenceClassify", "input": { "medianDays": 100 }, "expected": { "cadence": "quarterly" } },
+    { "name": "gap-quarterly-yearly", "fn": "cadenceClassify", "input": { "medianDays": 101 }, "expected": { "cadence": null } },
+    { "name": "yearly-low", "fn": "cadenceClassify", "input": { "medianDays": 330 }, "expected": { "cadence": "yearly" } },
+    { "name": "yearly-high", "fn": "cadenceClassify", "input": { "medianDays": 400 }, "expected": { "cadence": "yearly" } },
+    { "name": "above-yearly", "fn": "cadenceClassify", "input": { "medianDays": 401 }, "expected": { "cadence": null } }
+  ]
+}

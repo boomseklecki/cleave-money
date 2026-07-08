@@ -1,0 +1,23 @@
+{
+  "module": "suggestions",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SplitTemplateLearning.swift",
+  "note": "derive(expenses, minOccurrences=2): a merchant counts when it has >=minOccurrences shared (>=2 owed>0 splits), transaction-linked, non-neutral expenses in ONE group; the template captures the averaged owed-split fractions (Double). Templates compared by merchantKey -> {groupId, shares}.",
+  "cases": [
+    { "name": "derive-averaged-fractions", "fn": "deriveTemplates",
+      "input": { "expenses": [
+        { "id": "eeeeeeee-0000-0000-0000-000000000001", "groupId": "11111111-1111-1111-1111-111111111111", "transactionId": "aaaaaaaa-0000-0000-0000-000000000001", "category": "Subscriptions", "details": "Netflix", "splits": [ { "userIdentifier": "v", "paidShare": "100", "owedShare": "60" }, { "userIdentifier": "p", "paidShare": "0", "owedShare": "40" } ] },
+        { "id": "eeeeeeee-0000-0000-0000-000000000002", "groupId": "11111111-1111-1111-1111-111111111111", "transactionId": "aaaaaaaa-0000-0000-0000-000000000002", "category": "Subscriptions", "details": "Netflix", "splits": [ { "userIdentifier": "v", "paidShare": "100", "owedShare": "60" }, { "userIdentifier": "p", "paidShare": "0", "owedShare": "40" } ] },
+        { "id": "eeeeeeee-0000-0000-0000-000000000003", "groupId": "11111111-1111-1111-1111-111111111111", "transactionId": "aaaaaaaa-0000-0000-0000-000000000003", "category": "Subscriptions", "details": "Hulu", "splits": [ { "userIdentifier": "v", "paidShare": "100", "owedShare": "50" }, { "userIdentifier": "p", "paidShare": "0", "owedShare": "50" } ] }
+      ] },
+      "expected": { "templates": [
+        { "merchantKey": "netflix", "groupId": "11111111-1111-1111-1111-111111111111", "shares": { "v": 0.6, "p": 0.4 } }
+      ] } },
+
+    { "name": "not-shared-excluded", "fn": "deriveTemplates",
+      "input": { "expenses": [
+        { "id": "eeeeeeee-0000-0000-0000-000000000004", "groupId": "11111111-1111-1111-1111-111111111111", "transactionId": "aaaaaaaa-0000-0000-0000-000000000004", "category": "Groceries", "details": "Solo Shop", "splits": [ { "userIdentifier": "v", "paidShare": "100", "owedShare": "100" } ] },
+        { "id": "eeeeeeee-0000-0000-0000-000000000005", "groupId": "11111111-1111-1111-1111-111111111111", "transactionId": "aaaaaaaa-0000-0000-0000-000000000005", "category": "Groceries", "details": "Solo Shop", "splits": [ { "userIdentifier": "v", "paidShare": "100", "owedShare": "100" } ] }
+      ] },
+      "expected": { "templates": [] } }
+  ]
+}

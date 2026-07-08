@@ -1,0 +1,24 @@
+{
+  "module": "goals",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/GoalProgress.swift",
+  "note": "budgetStatus: target<=0 -> over if spent>0 else under; spent>target -> over; fraction>=0.85 -> nearing else under (fraction = spent/target as Double). budgetFraction clamps to 0..1. saveFraction: balance measures (current-starting)/(target-starting) with a needed<=0 shortcut; amount measures (current-starting)/target. Values chosen exact in Double.",
+  "cases": [
+    { "name": "status-under", "fn": "budgetStatus", "input": { "spent": "50", "target": "100" }, "expected": { "status": "under" } },
+    { "name": "status-nearing-at-85pct", "fn": "budgetStatus", "input": { "spent": "85", "target": "100" }, "expected": { "status": "nearing" } },
+    { "name": "status-nearing-at-full", "fn": "budgetStatus", "input": { "spent": "100", "target": "100" }, "expected": { "status": "nearing" } },
+    { "name": "status-over", "fn": "budgetStatus", "input": { "spent": "101", "target": "100" }, "expected": { "status": "over" } },
+    { "name": "status-zero-target-spent", "fn": "budgetStatus", "input": { "spent": "5", "target": "0" }, "expected": { "status": "over" } },
+    { "name": "status-zero-target-nospend", "fn": "budgetStatus", "input": { "spent": "0", "target": "0" }, "expected": { "status": "under" } },
+
+    { "name": "fraction-half", "fn": "budgetFraction", "input": { "spent": "50", "target": "100" }, "expected": { "fraction": 0.5 } },
+    { "name": "fraction-clamped", "fn": "budgetFraction", "input": { "spent": "150", "target": "100" }, "expected": { "fraction": 1.0 } },
+    { "name": "fraction-zero-target-spent", "fn": "budgetFraction", "input": { "spent": "5", "target": "0" }, "expected": { "fraction": 1.0 } },
+    { "name": "fraction-zero-target-nospend", "fn": "budgetFraction", "input": { "spent": "0", "target": "0" }, "expected": { "fraction": 0.0 } },
+
+    { "name": "save-balance-half", "fn": "saveFraction", "input": { "current": "150", "starting": "100", "target": "200", "type": "balance" }, "expected": { "fraction": 0.5 } },
+    { "name": "save-balance-complete", "fn": "saveFraction", "input": { "current": "200", "starting": "100", "target": "200", "type": "balance" }, "expected": { "fraction": 1.0 } },
+    { "name": "save-balance-needed-zero-met", "fn": "saveFraction", "input": { "current": "100", "starting": "100", "target": "100", "type": "balance" }, "expected": { "fraction": 1.0 } },
+    { "name": "save-amount-half", "fn": "saveFraction", "input": { "current": "150", "starting": "100", "target": "100", "type": "amount" }, "expected": { "fraction": 0.5 } },
+    { "name": "save-amount-over-clamped", "fn": "saveFraction", "input": { "current": "300", "starting": "100", "target": "100", "type": "amount" }, "expected": { "fraction": 1.0 } }
+  ]
+}

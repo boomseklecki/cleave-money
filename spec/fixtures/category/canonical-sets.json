@@ -1,0 +1,19 @@
+{
+  "module": "category",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/CategoryMapping.swift",
+  "note": "The canonical taxonomy list (ordered) and the three exclusion sets (unordered). Kept in sync with backend/app/categories.py. A drift in either fails.",
+  "cases": [
+    { "name": "taxonomy-and-exclusion-sets", "fn": "canonicalSets",
+      "input": {},
+      "expected": {
+        "all": ["Groceries", "Dining", "Alcohol", "Transport", "Fuel", "Utilities", "Rent", "Mortgage",
+                "Entertainment", "Travel", "Health", "Insurance", "Shopping", "Household", "Services",
+                "Subscriptions", "Education", "Gifts", "Personal Care", "Pets", "Fees",
+                "Income", "Transfer", "Settle-up", "Other"],
+        "excludedFromSpend": ["Transfer", "Income", "Settle-up", "Reimbursement"],
+        "neutral": ["Transfer", "Settle-up"],
+        "incomeLike": ["Income", "Reimbursement"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "module": "split-math",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SplitMath.swift",
+  "note": "Equal-split (amount - sum(adjustments)), then add each person's adjustment to their owed.",
+  "cases": [
+    {
+      "name": "adjustment-plus-b",
+      "fn": "adjustmentSplit",
+      "input": { "amount": "20.00", "payer": "a", "participants": ["a", "b"], "adjustments": { "b": "4" } },
+      "expected": { "splits": [
+        { "userIdentifier": "a", "paidShare": "20.00", "owedShare": "8.00" },
+        { "userIdentifier": "b", "paidShare": "0.00", "owedShare": "12.00" }
+      ] }
+    },
+    {
+      "name": "adjustment-plus-a-three",
+      "fn": "adjustmentSplit",
+      "input": { "amount": "30.00", "payer": "a", "participants": ["a", "b", "c"], "adjustments": { "a": "6" } },
+      "expected": { "splits": [
+        { "userIdentifier": "a", "paidShare": "30.00", "owedShare": "14.00" },
+        { "userIdentifier": "b", "paidShare": "0.00", "owedShare": "8.00" },
+        { "userIdentifier": "c", "paidShare": "0.00", "owedShare": "8.00" }
+      ] }
+    },
+    {
+      "name": "adjustment-none-is-equal",
+      "fn": "adjustmentSplit",
+      "input": { "amount": "10.00", "payer": "a", "participants": ["a", "b"], "adjustments": {} },
+      "expected": { "splits": [
+        { "userIdentifier": "a", "paidShare": "10.00", "owedShare": "5.00" },
+        { "userIdentifier": "b", "paidShare": "0.00", "owedShare": "5.00" }
+      ] }
+    }
+  ]
+}

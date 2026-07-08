@@ -1,0 +1,19 @@
+{
+  "module": "deep-links",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/JoinLink.swift",
+  "note": "parse: an inbound join link (https://cleave.money/join?api=...[&invite=...] or cleave://join) -> {api, invite}; any other URL -> null; missing/empty api -> null. isPubliclyReachable: reject loopback, .local/.lan, and private ranges (192.168./10./172.).",
+  "cases": [
+    { "name": "parse-https-with-invite", "fn": "joinParse", "input": { "url": "https://cleave.money/join?api=https://my.host&invite=ABC123" }, "expected": { "api": "https://my.host", "invite": "ABC123" } },
+    { "name": "parse-https-no-invite", "fn": "joinParse", "input": { "url": "https://cleave.money/join?api=https://my.host" }, "expected": { "api": "https://my.host", "invite": null } },
+    { "name": "parse-scheme-form", "fn": "joinParse", "input": { "url": "cleave://join?api=https://my.host" }, "expected": { "api": "https://my.host", "invite": null } },
+    { "name": "parse-non-join-null", "fn": "joinParse", "input": { "url": "https://cleave.money/other?api=x" }, "expected": { "api": null } },
+    { "name": "parse-no-api-null", "fn": "joinParse", "input": { "url": "https://cleave.money/join?name=Foo" }, "expected": { "api": null } },
+
+    { "name": "reachable-public", "fn": "joinReachable", "input": { "url": "https://my.host" }, "expected": { "reachable": true } },
+    { "name": "reachable-localhost", "fn": "joinReachable", "input": { "url": "http://localhost:8000" }, "expected": { "reachable": false } },
+    { "name": "reachable-loopback-ip", "fn": "joinReachable", "input": { "url": "http://127.0.0.1:8000" }, "expected": { "reachable": false } },
+    { "name": "reachable-local-mdns", "fn": "joinReachable", "input": { "url": "http://mac.local" }, "expected": { "reachable": false } },
+    { "name": "reachable-private-192", "fn": "joinReachable", "input": { "url": "http://192.168.1.5" }, "expected": { "reachable": false } },
+    { "name": "reachable-private-10", "fn": "joinReachable", "input": { "url": "http://10.0.0.1" }, "expected": { "reachable": false } }
+  ]
+}

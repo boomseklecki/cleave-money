@@ -1,0 +1,13 @@
+{
+  "module": "matching",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/TransactionMatcher.swift",
+  "note": "confidenceLabel(score): >=0.8 Strong, 0.5..<0.8 Likely, else Possible.",
+  "cases": [
+    { "name": "strong-floor", "fn": "confidenceLabel", "input": { "score": 0.8 }, "expected": { "label": "Strong match" } },
+    { "name": "strong-high", "fn": "confidenceLabel", "input": { "score": 1.0 }, "expected": { "label": "Strong match" } },
+    { "name": "likely-high", "fn": "confidenceLabel", "input": { "score": 0.79 }, "expected": { "label": "Likely match" } },
+    { "name": "likely-floor", "fn": "confidenceLabel", "input": { "score": 0.5 }, "expected": { "label": "Likely match" } },
+    { "name": "possible-high", "fn": "confidenceLabel", "input": { "score": 0.49 }, "expected": { "label": "Possible match" } },
+    { "name": "possible-zero", "fn": "confidenceLabel", "input": { "score": 0.0 }, "expected": { "label": "Possible match" } }
+  ]
+}

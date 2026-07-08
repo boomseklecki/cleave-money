@@ -1,0 +1,121 @@
+# Production deploy: pull latest main on the end server, rebuild the api image, run DB migrations, and
+# health-check. Automates the routine deploy path (a manual deploy is still better for anything that
+# needs judgment). The actual work runs on a self-hosted runner installed ON the deploy server,
+# so no inbound SSH is needed: the runner dials out to GitHub and pulls the job.
+#
+# SECURITY (this repo is public): a self-hosted runner must NEVER run untrusted fork code. This workflow only
+# triggers on a published Release or a manual dispatch on this repo, NOT on pull_request, so a fork PR can't
+# reach the runner. Keep it that way.
+#
+# TWO human confirmations gate every deploy:
+#   1. the `approve` job pauses on the `deploy-approval` environment (first reviewer click)
+#   2. the `deploy` job pauses on the `production` environment (second reviewer click)
+# plus the trigger itself (publishing a Release, or typing "deploy" on a manual run).
+#
+# ONE-TIME SETUP before this can run:
+#   - Install a self-hosted Actions runner on the deploy server, labelled `deploy`
+#     (Settings > Actions > Runners). Give it Docker access + the compose dir below.
+#   - Create two environments (Settings > Environments), each with "Required reviewers":
+#       `deploy-approval`  and  `production`
+#   - Adjust COMPOSE_DIR / the profile / HEALTHCHECK_URL below to match this instance.
+name: deploy
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy" to confirm you want to build + migrate production'
+        required: true
+        default: ""
+      run_tests:
+        description: "Run the backend test suite before deploying"
+        type: boolean
+        default: true
+
+# Never run two deploys at once, and never cancel one mid-migration.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # Fail fast on a mistyped manual confirmation before anything heavy spins up. A release trigger has no
+  # input to check, so this is a no-op there (the Release publish is itself the deliberate act).
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate manual confirmation
+        if: github.event_name == 'workflow_dispatch' && inputs.confirm != 'deploy'
+        run: |
+          echo "::error::Type 'deploy' in the confirm box to run this workflow."
+          exit 1
+
+  # Optional gate: the same suite as local + the other CI (scripts/test-backend.sh). Always runs for a
+  # release; on a manual run it can be skipped by unticking run_tests (e.g. a docs-only hotfix).
+  test:
+    needs: guard
+    if: github.event_name == 'release' || inputs.run_tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run backend suite (same script as local)
+        run: bash scripts/test-backend.sh
+
+  # First approval click. This job does nothing but hold the `deploy-approval` environment gate, so a
+  # reviewer must approve before the deploy proceeds. `always()` lets it run when `test` was skipped, but
+  # still blocks on a real test failure.
+  approve:
+    needs: [guard, test]
+    if: always() && needs.guard.result == 'success' && needs.test.result != 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: deploy-approval
+    steps:
+      - run: echo "Approved by ${{ github.actor }}. Proceeding to the production gate."
+
+  # Second approval click + the actual deploy, on the runner installed on the end server.
+  deploy:
+    needs: approve
+    runs-on: [self-hosted, deploy]
+    timeout-minutes: 30
+    environment: production
+    env:
+      # Adjust to this instance. COMPOSE_PROFILES lets `docker compose` pick the prod services; leave empty
+      # if the default stack is prod. HEALTHCHECK_URL is hit from the runner host (which is on the server).
+      COMPOSE_DIR: /srv/cleave
+      COMPOSE_PROFILES: ""
+      HEALTHCHECK_URL: http://localhost:8000/health
+    steps:
+      - name: Pull, build, migrate, verify
+        working-directory: ${{ env.COMPOSE_DIR }}
+        run: |
+          set -euo pipefail
+
+          # Deploy the exact commit that's on origin/main. reset --hard (not merge) so the server working
+          # copy can't drift; any local commit on the server is expected to be pushed first.
+          git fetch origin main
+          git reset --hard origin/main
+
+          # Build the new image first, then apply migrations with a one-off container BEFORE restarting the
+          # serving container. This ordering avoids a window where new code runs against the old schema.
+          docker compose build api
+          docker compose run --rm api alembic upgrade head
+          docker compose up -d api
+
+          # Health gate: fail the deploy if the api doesn't come back healthy.
+          for i in $(seq 1 30); do
+            if curl -fsS "$HEALTHCHECK_URL" >/dev/null 2>&1; then
+              echo "api healthy after ${i} attempt(s)"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::api did not pass ${HEALTHCHECK_URL} within ~60s"
+          docker compose logs --tail=50 api || true
+          exit 1

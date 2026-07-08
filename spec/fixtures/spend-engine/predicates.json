@@ -1,0 +1,25 @@
+{
+  "module": "spend-engine",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SpendingAnalytics.swift",
+  "note": "isSpend(event): counts toward budgets/donut iff countsInSpending && amount > 0 && category != null && category not in excludedFromSpend.",
+  "cases": [
+    { "name": "outflow-included-counts", "fn": "isSpend",
+      "input": { "event": { "category": "Groceries", "amount": "40", "countsInSpending": true, "countsInCashFlow": true } },
+      "expected": { "isSpend": true } },
+    { "name": "inflow-not-spend", "fn": "isSpend",
+      "input": { "event": { "category": "Groceries", "amount": "-40", "countsInSpending": true, "countsInCashFlow": true } },
+      "expected": { "isSpend": false } },
+    { "name": "zero-not-spend", "fn": "isSpend",
+      "input": { "event": { "category": "Groceries", "amount": "0", "countsInSpending": true, "countsInCashFlow": true } },
+      "expected": { "isSpend": false } },
+    { "name": "not-included-not-spend", "fn": "isSpend",
+      "input": { "event": { "category": "Groceries", "amount": "40", "countsInSpending": false, "countsInCashFlow": true } },
+      "expected": { "isSpend": false } },
+    { "name": "excluded-category-not-spend", "fn": "isSpend",
+      "input": { "event": { "category": "Transfer", "amount": "40", "countsInSpending": true, "countsInCashFlow": true } },
+      "expected": { "isSpend": false } },
+    { "name": "null-category-not-spend", "fn": "isSpend",
+      "input": { "event": { "category": null, "amount": "40", "countsInSpending": true, "countsInCashFlow": true } },
+      "expected": { "isSpend": false } }
+  ]
+}

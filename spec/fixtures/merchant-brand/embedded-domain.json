@@ -1,0 +1,12 @@
+{
+  "module": "merchant-brand",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/Brand.swift (MerchantParse.embeddedDomain)",
+  "note": "First embedded domain (case-insensitive), requiring a known TLD; a leading www. is dropped; null if none. The TLD allowlist stops ST.LOUIS / NO.5 from looking like domains.",
+  "cases": [
+    { "name": "apple-com-slash-bill", "fn": "embeddedDomain", "input": { "text": "APPLE.COM/BILL" }, "expected": { "domain": "apple.com" } },
+    { "name": "www-stripped", "fn": "embeddedDomain", "input": { "text": "WWW.SHOP.COM" }, "expected": { "domain": "shop.com" } },
+    { "name": "io-tld", "fn": "embeddedDomain", "input": { "text": "foo.io bar" }, "expected": { "domain": "foo.io" } },
+    { "name": "unknown-tld-null", "fn": "embeddedDomain", "input": { "text": "ST.LOUIS" }, "expected": { "domain": null } },
+    { "name": "no-domain-null", "fn": "embeddedDomain", "input": { "text": "NETFLIX CA" }, "expected": { "domain": null } }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "module": "spend-engine",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SpendingAnalytics.swift",
+  "note": "byCategory(in month): sum of isSpend events whose monthStart == the target month, by canonical category. Exercises dedup + inclusion + isSpend + aggregation. Dates are mid-month noon-UTC so month bucketing is timezone-stable; the month param is likewise any date in the target month. Income (excludedFromSpend) does not appear; a different-month transaction is filtered out.",
+  "cases": [
+    { "name": "sum-txn-and-expense-one-month", "fn": "byCategory",
+      "input": { "me": "me", "lookup": {}, "month": "2025-06-15T12:00:00Z",
+        "transactions": [
+          { "id": "22222222-0000-0000-0000-000000000001", "accountId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "source": "plaid", "amount": "100", "category": "FOOD_AND_DRINK_GROCERIES", "date": "2025-06-15T12:00:00Z" },
+          { "id": "22222222-0000-0000-0000-000000000002", "accountId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "source": "plaid", "amount": "999", "category": "FOOD_AND_DRINK_GROCERIES", "date": "2025-05-15T12:00:00Z" }
+        ],
+        "accounts": [ { "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "name": "Chk", "type": "checking" } ],
+        "expenses": [
+          { "id": "eeeeeeee-0000-0000-0000-000000000020", "groupId": "99999999-9999-9999-9999-999999999999", "amount": "200", "category": "Groceries", "date": "2025-06-15T12:00:00Z", "splits": [ { "userIdentifier": "me", "paidShare": "0", "owedShare": "40" } ] },
+          { "id": "eeeeeeee-0000-0000-0000-000000000021", "groupId": "99999999-9999-9999-9999-999999999999", "amount": "100", "category": "Income", "date": "2025-06-15T12:00:00Z", "splits": [ { "userIdentifier": "me", "paidShare": "0", "owedShare": "100" } ] }
+        ],
+        "groups": [ { "id": "99999999-9999-9999-9999-999999999999" } ] },
+      "expected": { "byCategory": { "Groceries": "140" } } }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "module": "category",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/CategoryMapping.swift",
+  "note": "needsRefinement: true iff no override, source == plaid, raw non-empty, not in local lookup, and the Plaid built-in yields null or 'Other'.",
+  "cases": [
+    { "name": "vague-other", "fn": "needsRefinement",
+      "input": { "transaction": { "category": "GENERAL_SERVICES", "override": null, "refined": null, "source": "plaid" }, "lookup": {} },
+      "expected": { "needsRefinement": true } },
+    { "name": "vague-null-canonical", "fn": "needsRefinement",
+      "input": { "transaction": { "category": "ZZZ_UNKNOWN", "override": null, "refined": null, "source": "plaid" }, "lookup": {} },
+      "expected": { "needsRefinement": true } },
+    { "name": "not-vague-groceries", "fn": "needsRefinement",
+      "input": { "transaction": { "category": "FOOD_AND_DRINK_GROCERIES", "override": null, "refined": null, "source": "plaid" }, "lookup": {} },
+      "expected": { "needsRefinement": false } },
+    { "name": "has-override", "fn": "needsRefinement",
+      "input": { "transaction": { "category": "GENERAL_SERVICES", "override": "Dining", "refined": null, "source": "plaid" }, "lookup": {} },
+      "expected": { "needsRefinement": false } },
+    { "name": "in-local-lookup", "fn": "needsRefinement",
+      "input": { "transaction": { "category": "GENERAL_SERVICES", "override": null, "refined": null, "source": "plaid" }, "lookup": { "GENERAL_SERVICES": "Shopping" } },
+      "expected": { "needsRefinement": false } },
+    { "name": "not-plaid-source", "fn": "needsRefinement",
+      "input": { "transaction": { "category": "GENERAL_SERVICES", "override": null, "refined": null, "source": "manual" }, "lookup": {} },
+      "expected": { "needsRefinement": false } },
+    { "name": "null-raw", "fn": "needsRefinement",
+      "input": { "transaction": { "category": null, "override": null, "refined": null, "source": "plaid" }, "lookup": {} },
+      "expected": { "needsRefinement": false } }
+  ]
+}

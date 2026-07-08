@@ -1,0 +1,10 @@
+# swift-openapi-generator configuration.
+# The contract lives at ios/openapi.json (canonical); this directory holds a transformed
+# copy the build plugin consumes (nullable anyOf wrappers collapsed to optionals, which the
+# generator would otherwise drop). Regenerate the copy after backend changes:
+#   python3 ios/scripts/prepare_openapi.py ios/openapi.json \
+#       ios/CleaveAPI/Sources/CleaveAPI/openapi.json
+generate:
+  - types
+  - client
+accessModifier: public

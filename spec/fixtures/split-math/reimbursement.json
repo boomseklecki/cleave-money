@@ -1,0 +1,17 @@
+{
+  "module": "split-math",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SplitMath.swift",
+  "note": "Equal split with each person's paidShare/owedShare swapped, flipping every balance while summing to the amount.",
+  "cases": [
+    {
+      "name": "reimbursement-three",
+      "fn": "reimbursementSplit",
+      "input": { "amount": "30.00", "payer": "a", "participants": ["a", "b", "c"] },
+      "expected": { "splits": [
+        { "userIdentifier": "a", "paidShare": "10.00", "owedShare": "30.00" },
+        { "userIdentifier": "b", "paidShare": "10.00", "owedShare": "0.00" },
+        { "userIdentifier": "c", "paidShare": "10.00", "owedShare": "0.00" }
+      ] }
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connect to Cleave</title>
+  <style>
+    :root { color-scheme: light dark; --bg:#f5f5f7; --card:#fff; --fg:#1d1d1f; --muted:#6e6e73;
+            --accent:#0a84ff; --line:#e5e5ea; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#000; --card:#1c1c1e; --fg:#f5f5f7; --muted:#98989d; --line:#2c2c2e; } }
+    * { box-sizing: border-box; }
+    body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+           background:var(--bg); color:var(--fg); font:16px/1.5 -apple-system,BlinkMacSystemFont,
+           "Segoe UI",Roboto,sans-serif; padding:24px; }
+    main { background:var(--card); border-radius:20px; max-width:420px; width:100%; padding:32px;
+           box-shadow:0 12px 40px rgba(0,0,0,.12); text-align:center; }
+    h1 { font-size:28px; margin:0 0 4px; letter-spacing:-.02em; }
+    .sub { color:var(--muted); margin:0 0 24px; }
+    .host { font-weight:600; }
+    .btn { display:block; width:100%; padding:14px; border-radius:12px; border:0; cursor:pointer;
+           font-size:16px; font-weight:600; text-decoration:none; margin:8px 0; }
+    .btn.primary { background:var(--accent); color:#fff; }
+    .step { text-align:left; color:var(--muted); font-size:14px; margin:20px 0 8px; }
+    #qr { margin:12px auto; width:200px; height:200px; display:flex; align-items:center;
+          justify-content:center; background:#fff; border-radius:12px; padding:10px; }
+    #qr img { width:100%; height:100%; image-rendering:pixelated; }
+    .endpoint { display:flex; gap:8px; margin-top:8px; }
+    .endpoint input { flex:1; padding:10px; border:1px solid var(--line); border-radius:10px;
+                      background:var(--bg); color:var(--fg); font-size:13px; min-width:0; }
+    .endpoint button { padding:10px 14px; border:1px solid var(--line); border-radius:10px;
+                       background:var(--bg); color:var(--fg); cursor:pointer; }
+    hr { border:0; border-top:1px solid var(--line); margin:24px 0; }
+    .hide { display:none; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Cleave</h1>
+    <p class="sub" id="sub">Connect the app to a self-hosted Cleave server.</p>
+
+    <section id="install">
+      <a class="btn primary" id="storeBtn" href="#">Get the app</a>
+      <p class="step">Already installed? <strong>Tap this link on your device</strong> to connect
+        automatically (and redeem your invite if it has one). Or scan this code with another phone's camera:</p>
+      <div id="qr" aria-label="Invite QR code"></div>
+    </section>
+
+    <hr id="divider">
+
+    <section id="manual">
+      <p class="step">Or paste this server URL in Cleave &rarr; Settings:</p>
+      <div class="endpoint">
+        <input id="endpoint" type="text" readonly value="" aria-label="Server URL">
+        <button id="copyBtn">Copy</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+  <script>
+    // Install destinations - replace once TestFlight / App Store links exist.
+    var TESTFLIGHT_URL = "https://testflight.apple.com/";
+    var APP_STORE_URL  = "https://apps.apple.com/";
+
+    var params = new URLSearchParams(location.search);
+    // Default the endpoint to the host serving this page (single-host: backend serves /join).
+    var api = (params.get("api") || "").trim() || location.origin;
+    var name = (params.get("name") || "").trim();
+
+    var sub = document.getElementById("sub");
+    var host = api.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    sub.innerHTML = "Connect to <span class=\"host\">" + (name ? escapeHtml(name) : escapeHtml(host)) + "</span>";
+    document.getElementById("endpoint").value = api;
+
+    // Custom-scheme link the in-app scanner / a tap opens to configure the endpoint. `join` is the host
+    // the app parses (JoinLink.parse); it also carries the optional invite via the page's &invite=.
+    var invite = (params.get("invite") || "").trim();
+    var configure = "cleave://join?api=" + encodeURIComponent(api)
+      + (name ? "&name=" + encodeURIComponent(name) : "")
+      + (invite ? "&invite=" + encodeURIComponent(invite) : "");
+    try {
+      var qr = qrcode(0, "M");
+      qr.addData(configure);
+      qr.make();
+      document.getElementById("qr").innerHTML = qr.createImgTag(5, 0);
+    } catch (e) {
+      document.getElementById("qr").textContent = "QR unavailable — use the URL below.";
+    }
+
+    // Prefer TestFlight on iOS (beta); App Store otherwise.
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    document.getElementById("storeBtn").href = isIOS ? TESTFLIGHT_URL : APP_STORE_URL;
+
+    document.getElementById("copyBtn").addEventListener("click", function () {
+      var input = document.getElementById("endpoint");
+      input.select();
+      navigator.clipboard && navigator.clipboard.writeText(input.value);
+      this.textContent = "Copied";
+      var self = this;
+      setTimeout(function () { self.textContent = "Copy"; }, 1500);
+    });
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+  </script>
+</body>
+</html>

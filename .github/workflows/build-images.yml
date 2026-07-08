@@ -1,0 +1,79 @@
+# Build + publish the prebuilt container images to GHCR (ghcr.io/<owner>/cleave-api and .../cleave-relay).
+#
+# WHY: one-click self-hoster stores (Unraid Community Apps, Umbrel, CasaOS, Runtipi, Helm) install PREBUILT
+# images from a registry - they never build from source. This publishes multi-arch (amd64 + arm64) images so
+# those templates (and the deploy/ distribution compose) can pull instead of build. arm64 matters because
+# Umbrel Home / CasaOS commonly run on Pi-class ARM boards, and for Apple Silicon dev hosts.
+#
+# SECURITY: unlike deploy.yml this runs on a GitHub-HOSTED runner (ubuntu-latest), NOT the self-hosted `deploy`
+# runner, so building on a Release/dispatch is fine (no untrusted code reaches the deploy server). It only
+# pushes on this repo's Release or a manual dispatch, never on pull_request, so a fork PR can't publish.
+#
+# ONE-TIME SETUP: GHCR packages are created PRIVATE. For the anonymous pulls that one-click stores need, flip
+# each package (cleave-api, cleave-relay) to Public once in the repo's Packages settings after the first push.
+name: build-images
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: build-images-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        include:
+          - image: cleave-api
+            context: ./backend
+          - image: cleave-relay
+            context: ./relay
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU (arm64 emulation)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Tags: a published Release stamps the semver (and `latest`); a manual dispatch stamps the branch/sha so
+      # you can smoke-test an image without cutting a Release.
+      - name: Derive tags + labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
+            type=ref,event=branch
+            type=sha
+
+      - name: Build + push (amd64 + arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}

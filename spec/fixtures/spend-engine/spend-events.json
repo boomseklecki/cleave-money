@@ -1,0 +1,71 @@
+{
+  "module": "spend-engine",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SpendingAnalytics.swift",
+  "note": "spendEvents/resolvedEvents: unified stream. Transactions (plaid/manual/simplefin) first in input order, then expenses (me != null). A transaction linked by an expense's transactionId is DROPPED (its expense's owed share represents it) - the dedup headline. plaid/simplefin with no account are skipped; manual cash (no account) counts. Per-source include flags: txn own flag else account's; expense own flag else group's else included. Expense counted at owed share; neutral (Transfer/Settle-up) dropped; incomeLike is a negative inflow (Reimbursement uses paidShare, Income uses owedShare). Events compared in order as {category, amount, countsInSpending, countsInCashFlow}; amounts exact.",
+  "cases": [
+    { "name": "dedup-linked-txn-dropped-keep-expense-share", "fn": "spendEvents",
+      "input": { "me": "me", "lookup": {},
+        "transactions": [ { "id": "11111111-1111-1111-1111-111111111111", "accountId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "source": "plaid", "amount": "2000", "category": "RENT_AND_UTILITIES_RENT" } ],
+        "accounts": [ { "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "name": "Chk", "type": "checking" } ],
+        "expenses": [ { "id": "eeeeeeee-0000-0000-0000-000000000001", "groupId": "99999999-9999-9999-9999-999999999999", "transactionId": "11111111-1111-1111-1111-111111111111", "amount": "2000", "category": "Rent", "splits": [ { "userIdentifier": "me", "paidShare": "2000", "owedShare": "1000" } ] } ],
+        "groups": [ { "id": "99999999-9999-9999-9999-999999999999" } ] },
+      "expected": { "events": [ { "category": "Rent", "amount": "1000", "countsInSpending": true, "countsInCashFlow": true } ] } },
+
+    { "name": "plaid-no-account-skipped", "fn": "spendEvents",
+      "input": { "me": null, "lookup": {},
+        "transactions": [ { "id": "11111111-0000-0000-0000-000000000002", "accountId": null, "source": "plaid", "amount": "50", "category": "FOOD_AND_DRINK" } ],
+        "accounts": [], "expenses": [], "groups": [] },
+      "expected": { "events": [] } },
+
+    { "name": "manual-cash-no-account-counts", "fn": "spendEvents",
+      "input": { "me": null, "lookup": {},
+        "transactions": [ { "id": "11111111-0000-0000-0000-000000000003", "accountId": null, "source": "manual", "amount": "30", "category": "Dining" } ],
+        "accounts": [], "expenses": [], "groups": [] },
+      "expected": { "events": [ { "category": "Dining", "amount": "30", "countsInSpending": true, "countsInCashFlow": true } ] } },
+
+    { "name": "per-txn-override-beats-account-flag", "fn": "spendEvents",
+      "input": { "me": null, "lookup": {},
+        "transactions": [ { "id": "11111111-0000-0000-0000-000000000004", "accountId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "source": "plaid", "amount": "40", "category": "FOOD_AND_DRINK", "includeInSpending": false } ],
+        "accounts": [ { "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "name": "Chk", "type": "checking" } ],
+        "expenses": [], "groups": [] },
+      "expected": { "events": [ { "category": "Dining", "amount": "40", "countsInSpending": false, "countsInCashFlow": true } ] } },
+
+    { "name": "expense-neutral-settleup-dropped", "fn": "spendEvents",
+      "input": { "me": "me", "lookup": {}, "transactions": [], "accounts": [],
+        "expenses": [ { "id": "eeeeeeee-0000-0000-0000-000000000005", "groupId": "99999999-9999-9999-9999-999999999999", "amount": "20", "category": "Settle-up", "splits": [ { "userIdentifier": "me", "paidShare": "0", "owedShare": "10" } ] } ],
+        "groups": [ { "id": "99999999-9999-9999-9999-999999999999" } ] },
+      "expected": { "events": [] } },
+
+    { "name": "expense-income-negative-owed", "fn": "spendEvents",
+      "input": { "me": "me", "lookup": {}, "transactions": [], "accounts": [],
+        "expenses": [ { "id": "eeeeeeee-0000-0000-0000-000000000006", "groupId": "99999999-9999-9999-9999-999999999999", "amount": "100", "category": "Income", "splits": [ { "userIdentifier": "me", "paidShare": "0", "owedShare": "100" } ] } ],
+        "groups": [ { "id": "99999999-9999-9999-9999-999999999999" } ] },
+      "expected": { "events": [ { "category": "Income", "amount": "-100", "countsInSpending": true, "countsInCashFlow": true } ] } },
+
+    { "name": "expense-reimbursement-negative-paid", "fn": "spendEvents",
+      "input": { "me": "me", "lookup": {}, "transactions": [], "accounts": [],
+        "expenses": [ { "id": "eeeeeeee-0000-0000-0000-000000000007", "groupId": "99999999-9999-9999-9999-999999999999", "amount": "50", "category": "Reimbursement", "splits": [ { "userIdentifier": "me", "paidShare": "50", "owedShare": "0" } ] } ],
+        "groups": [ { "id": "99999999-9999-9999-9999-999999999999" } ] },
+      "expected": { "events": [ { "category": "Reimbursement", "amount": "-50", "countsInSpending": true, "countsInCashFlow": true } ] } },
+
+    { "name": "expense-basic-owed-share", "fn": "spendEvents",
+      "input": { "me": "me", "lookup": {}, "transactions": [], "accounts": [],
+        "expenses": [ { "id": "eeeeeeee-0000-0000-0000-000000000008", "groupId": "99999999-9999-9999-9999-999999999999", "amount": "100", "category": "Groceries", "splits": [ { "userIdentifier": "me", "paidShare": "0", "owedShare": "40" } ] } ],
+        "groups": [ { "id": "99999999-9999-9999-9999-999999999999" } ] },
+      "expected": { "events": [ { "category": "Groceries", "amount": "40", "countsInSpending": true, "countsInCashFlow": true } ] } },
+
+    { "name": "expense-zero-owed-skipped", "fn": "spendEvents",
+      "input": { "me": "me", "lookup": {}, "transactions": [], "accounts": [],
+        "expenses": [ { "id": "eeeeeeee-0000-0000-0000-000000000009", "groupId": "99999999-9999-9999-9999-999999999999", "amount": "100", "category": "Groceries", "splits": [ { "userIdentifier": "other", "paidShare": "100", "owedShare": "100" } ] } ],
+        "groups": [ { "id": "99999999-9999-9999-9999-999999999999" } ] },
+      "expected": { "events": [] } },
+
+    { "name": "me-null-ignores-expenses", "fn": "spendEvents",
+      "input": { "me": null, "lookup": {},
+        "transactions": [ { "id": "11111111-0000-0000-0000-000000000010", "accountId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "source": "plaid", "amount": "25", "category": "FOOD_AND_DRINK" } ],
+        "accounts": [ { "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "name": "Chk", "type": "checking" } ],
+        "expenses": [ { "id": "eeeeeeee-0000-0000-0000-000000000010", "groupId": "99999999-9999-9999-9999-999999999999", "amount": "100", "category": "Groceries", "splits": [ { "userIdentifier": "me", "paidShare": "0", "owedShare": "40" } ] } ],
+        "groups": [ { "id": "99999999-9999-9999-9999-999999999999" } ] },
+      "expected": { "events": [ { "category": "Dining", "amount": "25", "countsInSpending": true, "countsInCashFlow": true } ] } }
+  ]
+}

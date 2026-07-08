@@ -1,0 +1,186 @@
+name: Cleave
+options:
+  bundleIdPrefix: com.cleave
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "26.0"
+
+# Pinned here (not in the gitignored .xcodeproj) so automatic signing survives `xcodegen generate`.
+# Xcode auto-creates the App IDs + provisioning profiles (incl. the extension's) for this team on first
+# device build.
+settings:
+  base:
+    DEVELOPMENT_TEAM: 6FXV23JT6K
+    CODE_SIGN_STYLE: Automatic
+
+packages:
+  CleaveAPI:
+    path: CleaveAPI
+
+targets:
+  Cleave:
+    type: application
+    platform: iOS
+    sources:
+      - Cleave
+    dependencies:
+      - package: CleaveAPI
+      - target: CleaveNotificationService  # E2E push decryption extension (embedded)
+      - target: CleaveShareExtension       # OFX statement import from the share sheet (embedded)
+    info:
+      path: Cleave/Info.plist
+      properties:
+        # Default backend for a fresh install. Point this at your own demo/instance (guest login + sample
+        # data lets new testers land in a populated app before linking real accounts). Users can also switch
+        # via the gate's "Use your own server" / Settings Dev-Prod presets.
+        API_BASE_URL: https://demo.cleave.money
+        # Allow cleartext HTTP to local-network hosts (self-hosted backend on the LAN / *.local).
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        NSLocalNetworkUsageDescription: Cleave connects to your self-hosted backend on the local network.
+        NSCameraUsageDescription: Scan receipts with the camera.
+        NSFaceIDUsageDescription: Unlock Cleave with Face ID.
+        # Plaid Link app-to-app handoff to bank apps during OAuth.
+        LSApplicationQueriesSchemes:
+          - plaidlink
+        # Google Sign-In iOS client id (public - ships in the app binary; backend verifies the
+        # id_token's audience against the same GOOGLE_CLIENT_ID).
+        GIDClientID: 466528965386-hjlem1kitvnnbgg28ola7iempqr85gg1.apps.googleusercontent.com
+        CFBundleURLTypes:
+          # Custom scheme for the Splitwise OAuth callback (backend 302s to cleave://auth?token=...).
+          - CFBundleURLSchemes:
+              - cleave
+          # Google Sign-In reversed-client-id callback.
+          - CFBundleURLSchemes:
+              - com.googleusercontent.apps.466528965386-hjlem1kitvnnbgg28ola7iempqr85gg1
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        # Declare an imported UTI for OFX bank statements (.ofx has no system UTI) so Cleave can be a
+        # share-sheet target for Apple Card / bank statement exports (see the Share Extension's activation rule).
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: money.cleave.ofx
+            UTTypeDescription: OFX bank statement
+            UTTypeConformsTo:
+              - public.data
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - ofx
+    entitlements:
+      path: Cleave/Cleave.entitlements
+      properties:
+        # Native Sign in with Apple. The backend verifies the identity token against
+        # apple_audience = this bundle id (money.cleave.app). Device builds also need the
+        # capability enabled on the App ID in the Apple Developer portal.
+        com.apple.developer.applesignin:
+          - Default
+        # Universal Links for the join link (cleave.money/join) and Plaid OAuth redirect
+        # (cleave.money/plaid/oauth, app-handled - resumes Plaid Link, no backend route).
+        com.apple.developer.associated-domains:
+          - applinks:cleave.money
+        # APNs push. Device builds also need the Push Notifications capability on the App ID +
+        # a provisioning profile with it enabled; "development" for dev/TestFlight sandbox APNs.
+        aps-environment: development
+        # Shared App Group: the E2E push private key lives in this group's Keychain so the notification
+        # service extension can read it to decrypt pushes. Device builds need the App Groups capability
+        # on the App ID + matching provisioning profiles (app + extension).
+        com.apple.security.application-groups:
+          - group.money.cleave.app
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: money.cleave.app
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_EMIT_LOC_STRINGS: YES
+
+  # Notification Service Extension: decrypts E2E push payloads on-device (relay/Apple stay blind). It
+  # compiles the shared crypto/keychain sources directly (no SwiftData/package link) so it stays tiny.
+  CleaveNotificationService:
+    type: app-extension
+    platform: iOS
+    sources:
+      - CleaveNotificationService
+      - path: CleaveAPI/Sources/CleaveAPI/Networking/PushCrypto.swift
+        group: Shared
+      - path: CleaveAPI/Sources/CleaveAPI/Networking/PushKeychain.swift
+        group: Shared
+    info:
+      path: CleaveNotificationService/Info.plist
+      properties:
+        # Required for app extensions - a device install (installd) rejects an .appex without it.
+        CFBundleDisplayName: Cleave
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.usernotifications.service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).NotificationService
+    entitlements:
+      path: CleaveNotificationService/CleaveNotificationService.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.money.cleave.app
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: money.cleave.app.NotificationService
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+
+  # Share Extension: accepts an OFX statement from the share sheet and uploads it to the user's backend
+  # (Apple Card manual import) without opening the app. Compiles the shared config/uploader directly (no
+  # SwiftData/package link), reading the base URL + token the app mirrors into the App Group.
+  CleaveShareExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - CleaveShareExtension
+      - path: CleaveAPI/Sources/CleaveAPI/Networking/SharedImportConfig.swift
+        group: Shared
+      - path: CleaveAPI/Sources/CleaveAPI/Networking/StatementUploader.swift
+        group: Shared
+    info:
+      path: CleaveShareExtension/Info.plist
+      properties:
+        # Required for app extensions (installd rejects an .appex without it); also the share-sheet label.
+        CFBundleDisplayName: Cleave
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            # Only offer Cleave for a single OFX statement file (our imported UTI), not every share.
+            NSExtensionActivationRule: "SUBQUERY(extensionItems, $item, SUBQUERY($item.attachments, $att, ANY $att.registeredTypeIdentifiers UTI-CONFORMS-TO \"money.cleave.ofx\").@count == 1).@count == 1"
+    entitlements:
+      path: CleaveShareExtension/CleaveShareExtension.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.money.cleave.app
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: money.cleave.app.ShareExtension
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+
+  # Logic tests for the data layer. Depends only on the CleaveAPI library (no app host), so the
+  # library and its transitive runtime deps link cleanly; uses `@testable import CleaveAPI`.
+  CleaveTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - CleaveTests
+    dependencies:
+      - package: CleaveAPI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: money.cleave.tests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "5.0"
+
+schemes:
+  Cleave:
+    build:
+      targets:
+        Cleave: all
+        CleaveTests: [test]
+    test:
+      targets:
+        - CleaveTests

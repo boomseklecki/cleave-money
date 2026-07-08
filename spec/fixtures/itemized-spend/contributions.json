@@ -1,0 +1,47 @@
+{
+  "module": "itemized-spend",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/ItemizedSpend.swift",
+  "note": "categoryContributions(for expense, me, lookup): your per-category spend. Items owned by you count full price; the rest of your owed share (owed - your assigned items) spreads over shared items + non-item remainder by price. honorOwners = (splitwiseExpenseId == null): a Splitwise expense ignores owners (items don't sync) so your share is fully proportional. No items -> single owed share. Amounts chosen to terminate exactly. Output is category -> amount (unordered).",
+  "cases": [
+    { "name": "no-items-single-owed-share", "fn": "itemizedContributions",
+      "input": { "me": "me", "lookup": {},
+        "expense": { "amount": "100", "category": "Groceries", "splitwise": false,
+          "splits": [ { "userIdentifier": "me", "paidShare": "0", "owedShare": "40" } ], "items": [] } },
+      "expected": { "byCategory": { "Groceries": "40" } } },
+
+    { "name": "zero-owed-empty", "fn": "itemizedContributions",
+      "input": { "me": "me", "lookup": {},
+        "expense": { "amount": "100", "category": "Groceries", "splitwise": false,
+          "splits": [ { "userIdentifier": "me", "paidShare": "0", "owedShare": "0" } ], "items": [] } },
+      "expected": { "byCategory": {} } },
+
+    { "name": "nil-category-empty", "fn": "itemizedContributions",
+      "input": { "me": "me", "lookup": {},
+        "expense": { "amount": "100", "category": null, "splitwise": false,
+          "splits": [ { "userIdentifier": "me", "paidShare": "0", "owedShare": "40" } ], "items": [] } },
+      "expected": { "byCategory": {} } },
+
+    { "name": "honors-owners", "fn": "itemizedContributions",
+      "input": { "me": "me", "lookup": {},
+        "expense": { "amount": "100", "category": "Groceries", "splitwise": false,
+          "splits": [ { "userIdentifier": "me", "paidShare": "0", "owedShare": "60" } ],
+          "items": [ { "category": "Groceries", "price": "50", "owner": "me" },
+                     { "category": "Dining", "price": "30", "owner": null } ] } },
+      "expected": { "byCategory": { "Groceries": "54", "Dining": "6" } } },
+
+    { "name": "splitwise-ignores-owners", "fn": "itemizedContributions",
+      "input": { "me": "me", "lookup": {},
+        "expense": { "amount": "100", "category": "Groceries", "splitwise": true,
+          "splits": [ { "userIdentifier": "me", "paidShare": "0", "owedShare": "60" } ],
+          "items": [ { "category": "Groceries", "price": "50", "owner": "me" },
+                     { "category": "Dining", "price": "30", "owner": null } ] } },
+      "expected": { "byCategory": { "Groceries": "42", "Dining": "18" } } },
+
+    { "name": "item-raw-category-canonicalized", "fn": "itemizedContributions",
+      "input": { "me": "me", "lookup": {},
+        "expense": { "amount": "50", "category": "Dining", "splitwise": false,
+          "splits": [ { "userIdentifier": "me", "paidShare": "0", "owedShare": "50" } ],
+          "items": [ { "category": "FOOD_AND_DRINK_GROCERIES", "price": "50", "owner": "me" } ] } },
+      "expected": { "byCategory": { "Groceries": "50" } } }
+  ]
+}

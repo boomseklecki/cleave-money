@@ -1,0 +1,34 @@
+{
+  "module": "split-math",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SplitMath.swift",
+  "note": "Each person owes their assigned item total; the unassigned remainder (tax/tip) is equal-split.",
+  "cases": [
+    {
+      "name": "itemized-with-unassigned-remainder",
+      "fn": "itemizedSplit",
+      "input": { "amount": "10.00", "payer": "a", "participants": ["a", "b"], "assigned": { "b": "4" } },
+      "expected": { "splits": [
+        { "userIdentifier": "a", "paidShare": "10.00", "owedShare": "3.00" },
+        { "userIdentifier": "b", "paidShare": "0.00", "owedShare": "7.00" }
+      ] }
+    },
+    {
+      "name": "itemized-fully-assigned-no-remainder",
+      "fn": "itemizedSplit",
+      "input": { "amount": "12.00", "payer": "a", "participants": ["a", "b"], "assigned": { "a": "5", "b": "7" } },
+      "expected": { "splits": [
+        { "userIdentifier": "a", "paidShare": "12.00", "owedShare": "5.00" },
+        { "userIdentifier": "b", "paidShare": "0.00", "owedShare": "7.00" }
+      ] }
+    },
+    {
+      "name": "itemized-odd-remainder-pennies",
+      "fn": "itemizedSplit",
+      "input": { "amount": "10.01", "payer": "a", "participants": ["a", "b"], "assigned": { "b": "4.00" } },
+      "expected": { "splits": [
+        { "userIdentifier": "a", "paidShare": "10.01", "owedShare": "3.01" },
+        { "userIdentifier": "b", "paidShare": "0.00", "owedShare": "7.00" }
+      ] }
+    }
+  ]
+}

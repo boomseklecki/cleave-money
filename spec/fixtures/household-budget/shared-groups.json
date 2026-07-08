@@ -1,0 +1,29 @@
+{
+  "module": "household-budget",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/HouseholdBudget.swift",
+  "note": "membership() builds [groupId: {member}] from GroupMember rows; sharedGroupIds() = groups whose members contain the viewer AND at least one partner. Result is a set (compared unordered).",
+  "cases": [
+    { "name": "one-shared-one-partner", "fn": "sharedGroups",
+      "input": { "viewer": "v", "partners": ["p"],
+        "members": [
+          { "groupId": "11111111-1111-1111-1111-111111111111", "userIdentifier": "v" },
+          { "groupId": "11111111-1111-1111-1111-111111111111", "userIdentifier": "p" },
+          { "groupId": "22222222-2222-2222-2222-222222222222", "userIdentifier": "v" },
+          { "groupId": "22222222-2222-2222-2222-222222222222", "userIdentifier": "o" },
+          { "groupId": "33333333-3333-3333-3333-333333333333", "userIdentifier": "p" },
+          { "groupId": "33333333-3333-3333-3333-333333333333", "userIdentifier": "o" }
+        ] },
+      "expected": { "groupIds": ["11111111-1111-1111-1111-111111111111"] } },
+
+    { "name": "two-partners-two-shared", "fn": "sharedGroups",
+      "input": { "viewer": "v", "partners": ["p", "q"],
+        "members": [
+          { "groupId": "11111111-1111-1111-1111-111111111111", "userIdentifier": "v" },
+          { "groupId": "11111111-1111-1111-1111-111111111111", "userIdentifier": "p" },
+          { "groupId": "22222222-2222-2222-2222-222222222222", "userIdentifier": "v" },
+          { "groupId": "22222222-2222-2222-2222-222222222222", "userIdentifier": "q" },
+          { "groupId": "44444444-4444-4444-4444-444444444444", "userIdentifier": "v" }
+        ] },
+      "expected": { "groupIds": ["11111111-1111-1111-1111-111111111111", "22222222-2222-2222-2222-222222222222"] } }
+  ]
+}

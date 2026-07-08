@@ -1,0 +1,44 @@
+{
+  "module": "category",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/PlaidCategory.swift",
+  "note": "PlaidCategory.canonical(raw): detailedOverrides checked first (exact), then primaryMap by exact match or raw.hasPrefix(primary + '_'). Unknown/empty -> null. Full table pinned so any single-entry drift fails.",
+  "cases": [
+    { "name": "override-groceries", "fn": "plaidCanonical", "input": { "raw": "FOOD_AND_DRINK_GROCERIES" }, "expected": { "category": "Groceries" } },
+    { "name": "override-alcohol", "fn": "plaidCanonical", "input": { "raw": "FOOD_AND_DRINK_BEER_WINE_AND_LIQUOR" }, "expected": { "category": "Alcohol" } },
+    { "name": "override-fuel", "fn": "plaidCanonical", "input": { "raw": "TRANSPORTATION_GAS" }, "expected": { "category": "Fuel" } },
+    { "name": "override-rent", "fn": "plaidCanonical", "input": { "raw": "RENT_AND_UTILITIES_RENT" }, "expected": { "category": "Rent" } },
+    { "name": "override-mortgage", "fn": "plaidCanonical", "input": { "raw": "LOAN_PAYMENTS_MORTGAGE_PAYMENT" }, "expected": { "category": "Mortgage" } },
+    { "name": "override-insurance", "fn": "plaidCanonical", "input": { "raw": "GENERAL_SERVICES_INSURANCE" }, "expected": { "category": "Insurance" } },
+    { "name": "override-education", "fn": "plaidCanonical", "input": { "raw": "GENERAL_SERVICES_EDUCATION" }, "expected": { "category": "Education" } },
+    { "name": "override-pets-supplies", "fn": "plaidCanonical", "input": { "raw": "GENERAL_MERCHANDISE_PET_SUPPLIES" }, "expected": { "category": "Pets" } },
+    { "name": "override-pets-vet", "fn": "plaidCanonical", "input": { "raw": "MEDICAL_VETERINARY_SERVICES" }, "expected": { "category": "Pets" } },
+    { "name": "override-gifts-donations", "fn": "plaidCanonical", "input": { "raw": "GOVERNMENT_AND_NON_PROFIT_DONATIONS" }, "expected": { "category": "Gifts" } },
+
+    { "name": "primary-income", "fn": "plaidCanonical", "input": { "raw": "INCOME" }, "expected": { "category": "Income" } },
+    { "name": "primary-transfer-in", "fn": "plaidCanonical", "input": { "raw": "TRANSFER_IN" }, "expected": { "category": "Transfer" } },
+    { "name": "primary-transfer-out", "fn": "plaidCanonical", "input": { "raw": "TRANSFER_OUT" }, "expected": { "category": "Transfer" } },
+    { "name": "primary-loan-payments", "fn": "plaidCanonical", "input": { "raw": "LOAN_PAYMENTS" }, "expected": { "category": "Transfer" } },
+    { "name": "primary-bank-fees", "fn": "plaidCanonical", "input": { "raw": "BANK_FEES" }, "expected": { "category": "Fees" } },
+    { "name": "primary-entertainment", "fn": "plaidCanonical", "input": { "raw": "ENTERTAINMENT" }, "expected": { "category": "Entertainment" } },
+    { "name": "primary-food-and-drink", "fn": "plaidCanonical", "input": { "raw": "FOOD_AND_DRINK" }, "expected": { "category": "Dining" } },
+    { "name": "primary-general-merchandise", "fn": "plaidCanonical", "input": { "raw": "GENERAL_MERCHANDISE" }, "expected": { "category": "Shopping" } },
+    { "name": "primary-home-improvement", "fn": "plaidCanonical", "input": { "raw": "HOME_IMPROVEMENT" }, "expected": { "category": "Household" } },
+    { "name": "primary-medical", "fn": "plaidCanonical", "input": { "raw": "MEDICAL" }, "expected": { "category": "Health" } },
+    { "name": "primary-personal-care", "fn": "plaidCanonical", "input": { "raw": "PERSONAL_CARE" }, "expected": { "category": "Personal Care" } },
+    { "name": "primary-general-services", "fn": "plaidCanonical", "input": { "raw": "GENERAL_SERVICES" }, "expected": { "category": "Other" } },
+    { "name": "primary-government-non-profit", "fn": "plaidCanonical", "input": { "raw": "GOVERNMENT_AND_NON_PROFIT" }, "expected": { "category": "Other" } },
+    { "name": "primary-transportation", "fn": "plaidCanonical", "input": { "raw": "TRANSPORTATION" }, "expected": { "category": "Transport" } },
+    { "name": "primary-travel", "fn": "plaidCanonical", "input": { "raw": "TRAVEL" }, "expected": { "category": "Travel" } },
+    { "name": "primary-rent-and-utilities", "fn": "plaidCanonical", "input": { "raw": "RENT_AND_UTILITIES" }, "expected": { "category": "Utilities" } },
+
+    { "name": "prefix-fast-food", "fn": "plaidCanonical", "input": { "raw": "FOOD_AND_DRINK_FAST_FOOD" }, "expected": { "category": "Dining" } },
+    { "name": "prefix-restaurant", "fn": "plaidCanonical", "input": { "raw": "FOOD_AND_DRINK_RESTAURANT" }, "expected": { "category": "Dining" } },
+    { "name": "prefix-taxis", "fn": "plaidCanonical", "input": { "raw": "TRANSPORTATION_TAXIS_AND_RIDE_SHARES" }, "expected": { "category": "Transport" } },
+    { "name": "prefix-income-wages", "fn": "plaidCanonical", "input": { "raw": "INCOME_WAGES" }, "expected": { "category": "Income" } },
+    { "name": "prefix-merch-electronics", "fn": "plaidCanonical", "input": { "raw": "GENERAL_MERCHANDISE_ELECTRONICS" }, "expected": { "category": "Shopping" } },
+    { "name": "prefix-utilities-gas-electric", "fn": "plaidCanonical", "input": { "raw": "RENT_AND_UTILITIES_GAS_AND_ELECTRICITY" }, "expected": { "category": "Utilities" } },
+
+    { "name": "unknown-label", "fn": "plaidCanonical", "input": { "raw": "NOT_A_PLAID_CATEGORY" }, "expected": { "category": null } },
+    { "name": "empty-string", "fn": "plaidCanonical", "input": { "raw": "" }, "expected": { "category": null } }
+  ]
+}

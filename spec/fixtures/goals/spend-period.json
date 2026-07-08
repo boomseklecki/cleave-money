@@ -1,0 +1,19 @@
+{
+  "module": "goals",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SpendPeriod.swift",
+  "note": "SpendPeriod.resolve(anchor, now) -> inclusive first-of-month [start,end] + months count. .month uses the anchor; rolling/calendar presets use now. Labels are locale-formatted so not asserted; start/end asserted as year-month, months as the bar count. now = 2025-06 for all cases.",
+  "cases": [
+    { "name": "month", "fn": "spendPeriod", "input": { "period": "month", "anchor": "2025-03-15T12:00:00Z", "now": "2025-06-15T12:00:00Z" },
+      "expected": { "startYear": 2025, "startMonth": 3, "endYear": 2025, "endMonth": 3, "months": 1 } },
+    { "name": "last3", "fn": "spendPeriod", "input": { "period": "last3", "anchor": "2025-06-15T12:00:00Z", "now": "2025-06-15T12:00:00Z" },
+      "expected": { "startYear": 2025, "startMonth": 4, "endYear": 2025, "endMonth": 6, "months": 3 } },
+    { "name": "last6", "fn": "spendPeriod", "input": { "period": "last6", "anchor": "2025-06-15T12:00:00Z", "now": "2025-06-15T12:00:00Z" },
+      "expected": { "startYear": 2025, "startMonth": 1, "endYear": 2025, "endMonth": 6, "months": 6 } },
+    { "name": "last12", "fn": "spendPeriod", "input": { "period": "last12", "anchor": "2025-06-15T12:00:00Z", "now": "2025-06-15T12:00:00Z" },
+      "expected": { "startYear": 2024, "startMonth": 7, "endYear": 2025, "endMonth": 6, "months": 12 } },
+    { "name": "yearToDate", "fn": "spendPeriod", "input": { "period": "yearToDate", "anchor": "2025-06-15T12:00:00Z", "now": "2025-06-15T12:00:00Z" },
+      "expected": { "startYear": 2025, "startMonth": 1, "endYear": 2025, "endMonth": 6, "months": 6 } },
+    { "name": "previousYear", "fn": "spendPeriod", "input": { "period": "previousYear", "anchor": "2025-06-15T12:00:00Z", "now": "2025-06-15T12:00:00Z" },
+      "expected": { "startYear": 2024, "startMonth": 1, "endYear": 2024, "endMonth": 12, "months": 12 } }
+  ]
+}

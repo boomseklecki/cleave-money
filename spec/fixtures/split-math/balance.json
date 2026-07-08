@@ -1,0 +1,32 @@
+{
+  "module": "split-math",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SplitMath.swift",
+  "note": "isBalanced: both paidSum and owedSum must equal amount within +/-0.01.",
+  "cases": [
+    {
+      "name": "balanced-exact",
+      "fn": "isBalanced",
+      "input": { "amount": "10.00", "splits": [
+        { "userIdentifier": "a", "paidShare": "10.00", "owedShare": "5.00" },
+        { "userIdentifier": "b", "paidShare": "0.00", "owedShare": "5.00" }
+      ] },
+      "expected": { "balanced": true }
+    },
+    {
+      "name": "balanced-off-by-a-dollar",
+      "fn": "isBalanced",
+      "input": { "amount": "10.00", "splits": [
+        { "userIdentifier": "a", "paidShare": "10.00", "owedShare": "9.00" }
+      ] },
+      "expected": { "balanced": false }
+    },
+    {
+      "name": "balanced-within-tolerance",
+      "fn": "isBalanced",
+      "input": { "amount": "10.00", "splits": [
+        { "userIdentifier": "a", "paidShare": "10.00", "owedShare": "9.995" }
+      ] },
+      "expected": { "balanced": true }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "module": "deep-links",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/NotificationTarget.swift",
+  "note": "NotificationTarget(type, id) from a push/inbox (entity_type, entity_id). expense/transaction/account/goal/group require a valid UUID; friend takes any non-empty id; unknown type or invalid UUID or empty/nil -> null. Output asserted as the target's stable id string 'type:value'. (UUIDs are all-digit so case is irrelevant.)",
+  "cases": [
+    { "name": "expense", "fn": "ntParse", "input": { "type": "expense", "id": "11111111-1111-1111-1111-111111111111" }, "expected": { "target": "expense:11111111-1111-1111-1111-111111111111" } },
+    { "name": "transaction", "fn": "ntParse", "input": { "type": "transaction", "id": "22222222-2222-2222-2222-222222222222" }, "expected": { "target": "transaction:22222222-2222-2222-2222-222222222222" } },
+    { "name": "goal", "fn": "ntParse", "input": { "type": "goal", "id": "33333333-3333-3333-3333-333333333333" }, "expected": { "target": "goal:33333333-3333-3333-3333-333333333333" } },
+    { "name": "friend-string-id", "fn": "ntParse", "input": { "type": "friend", "id": "user@example.com" }, "expected": { "target": "friend:user@example.com" } },
+    { "name": "expense-bad-uuid-null", "fn": "ntParse", "input": { "type": "expense", "id": "not-a-uuid" }, "expected": { "target": null } },
+    { "name": "unknown-type-null", "fn": "ntParse", "input": { "type": "widget", "id": "11111111-1111-1111-1111-111111111111" }, "expected": { "target": null } },
+    { "name": "nil-type-null", "fn": "ntParse", "input": { "type": null, "id": "11111111-1111-1111-1111-111111111111" }, "expected": { "target": null } },
+    { "name": "empty-id-null", "fn": "ntParse", "input": { "type": "expense", "id": "" }, "expected": { "target": null } }
+  ]
+}

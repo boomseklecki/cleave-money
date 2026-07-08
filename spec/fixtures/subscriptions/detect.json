@@ -1,0 +1,58 @@
+{
+  "module": "subscriptions",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SubscriptionDetector.swift",
+  "note": "analyze(): group by MerchantText.key; classify a group as a subscription (enough events + regularity>=0.6 + amountClusters), a candidate (>=3 events + regularity>=0.5), or none. Shared expenses contribute the owed share (isShared). Dates are noon-UTC so day intervals are timezone-stable. Asserts id/cadence/latestAmount/priorAmount/annualCost/isShared/increased for subscriptions; id/cadence/amount/occurrences/isShared for candidates.",
+  "cases": [
+    { "name": "monthly-subscription", "fn": "detect",
+      "input": { "me": null, "lookup": {}, "expenses": [],
+        "transactions": [
+          { "details": "Netflix", "amount": "15.99", "source": "plaid", "category": "Subscriptions", "date": "2025-01-01T12:00:00Z" },
+          { "details": "Netflix", "amount": "15.99", "source": "plaid", "category": "Subscriptions", "date": "2025-02-01T12:00:00Z" },
+          { "details": "Netflix", "amount": "15.99", "source": "plaid", "category": "Subscriptions", "date": "2025-03-01T12:00:00Z" }
+        ] },
+      "expected": {
+        "subscriptions": [ { "id": "netflix", "cadence": "monthly", "latestAmount": "15.99", "priorAmount": "15.99", "annualCost": "191.88", "isShared": false, "increased": false } ],
+        "candidates": [] } },
+
+    { "name": "price-increase-subscription", "fn": "detect",
+      "input": { "me": null, "lookup": {}, "expenses": [],
+        "transactions": [
+          { "details": "Hulu", "amount": "12.99", "source": "plaid", "category": "Subscriptions", "date": "2025-01-01T12:00:00Z" },
+          { "details": "Hulu", "amount": "12.99", "source": "plaid", "category": "Subscriptions", "date": "2025-02-01T12:00:00Z" },
+          { "details": "Hulu", "amount": "15.99", "source": "plaid", "category": "Subscriptions", "date": "2025-03-01T12:00:00Z" }
+        ] },
+      "expected": {
+        "subscriptions": [ { "id": "hulu", "cadence": "monthly", "latestAmount": "15.99", "priorAmount": "12.99", "annualCost": "191.88", "isShared": false, "increased": true } ],
+        "candidates": [] } },
+
+    { "name": "candidate-near-miss", "fn": "detect",
+      "input": { "me": null, "lookup": {}, "expenses": [],
+        "transactions": [
+          { "details": "Gym", "amount": "20", "source": "plaid", "category": "Health", "date": "2025-01-01T12:00:00Z" },
+          { "details": "Gym", "amount": "20", "source": "plaid", "category": "Health", "date": "2025-02-10T12:00:00Z" },
+          { "details": "Gym", "amount": "20", "source": "plaid", "category": "Health", "date": "2025-02-20T12:00:00Z" }
+        ] },
+      "expected": {
+        "subscriptions": [],
+        "candidates": [ { "id": "gym", "cadence": "monthly", "amount": "20", "occurrences": 3, "isShared": false } ] } },
+
+    { "name": "too-few-events-none", "fn": "detect",
+      "input": { "me": null, "lookup": {}, "expenses": [],
+        "transactions": [
+          { "details": "Adobe", "amount": "10", "source": "plaid", "category": "Subscriptions", "date": "2025-01-01T12:00:00Z" },
+          { "details": "Adobe", "amount": "10", "source": "plaid", "category": "Subscriptions", "date": "2025-02-01T12:00:00Z" }
+        ] },
+      "expected": { "subscriptions": [], "candidates": [] } },
+
+    { "name": "shared-expense-subscription", "fn": "detect",
+      "input": { "me": "me", "lookup": {}, "transactions": [],
+        "expenses": [
+          { "details": "Spotify", "amount": "10", "category": "Subscriptions", "date": "2025-01-01T12:00:00Z", "splits": [ { "userIdentifier": "me", "paidShare": "0", "owedShare": "5" } ] },
+          { "details": "Spotify", "amount": "10", "category": "Subscriptions", "date": "2025-02-01T12:00:00Z", "splits": [ { "userIdentifier": "me", "paidShare": "0", "owedShare": "5" } ] },
+          { "details": "Spotify", "amount": "10", "category": "Subscriptions", "date": "2025-03-01T12:00:00Z", "splits": [ { "userIdentifier": "me", "paidShare": "0", "owedShare": "5" } ] }
+        ] },
+      "expected": {
+        "subscriptions": [ { "id": "spotify", "cadence": "monthly", "latestAmount": "5", "priorAmount": "5", "annualCost": "60", "isShared": true, "increased": false } ],
+        "candidates": [] } }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "module": "account-classification",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/AccountClassification.swift",
+  "note": "AccountKind(canonical:) then back to .canonical. 'savings' and legacy 'holdings' both map to the holdings kind (canonical 'savings'). Unrecognized -> null.",
+  "cases": [
+    { "name": "cash_flow", "fn": "kindFromCanonical", "input": { "canonical": "cash_flow" }, "expected": { "kind": "cash_flow" } },
+    { "name": "liability", "fn": "kindFromCanonical", "input": { "canonical": "liability" }, "expected": { "kind": "liability" } },
+    { "name": "savings", "fn": "kindFromCanonical", "input": { "canonical": "savings" }, "expected": { "kind": "savings" } },
+    { "name": "holdings-legacy-alias", "fn": "kindFromCanonical", "input": { "canonical": "holdings" }, "expected": { "kind": "savings" } },
+    { "name": "nonsense-null", "fn": "kindFromCanonical", "input": { "canonical": "nonsense" }, "expected": { "kind": null } }
+  ]
+}

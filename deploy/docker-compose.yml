@@ -1,0 +1,82 @@
+# Cleave - distribution stack for self-hosters (prebuilt images, one command).
+#
+# Unlike the repo-root docker-compose.yml (which builds from source and carries dev/demo/test profiles + the
+# push relay), this pulls PREBUILT images from GHCR and is the minimal "just run my instance" stack: Postgres +
+# MinIO + the API on :8000. The API self-migrates on start (RUN_MIGRATIONS), so there's no manual
+# `alembic upgrade head` step. This file is also the canonical artifact the one-click store templates wrap.
+#
+#   cp .env.example .env      # then fill in the generated secrets it asks for
+#   docker compose up -d      # postgres + minio + api on :8000, schema migrated automatically
+#
+# Put the API behind your own reverse proxy / tunnel for TLS (the app never talks to :8000 directly over the
+# internet) - see ../docs/OPERATIONS.md. Push notifications are optional and go through the shared relay: set
+# PUSH_RELAY_URL + PUSH_RELAY_API_KEY in .env (running your own relay needs an Apple .p8 and is not part of
+# this stack).
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cleave
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cleave}
+      POSTGRES_DB: cleave
+    volumes:
+      - cleave_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cleave"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      # One source of truth: these are both the app-side keys and the MinIO server root creds.
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-cleave}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-cleave-secret}
+    volumes:
+      - cleave_minio_data:/data
+    # Internal-only: the API reaches MinIO at minio:9000 on the compose network and streams receipt bytes
+    # itself, so no host ports are published. Add `ports: ["9001:9001"]` temporarily if you need the console.
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: ghcr.io/boomseklecki/cleave-api:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Pin the infra targets regardless of the .env placeholders.
+      DATABASE_URL: postgresql+asyncpg://cleave:${POSTGRES_PASSWORD:-cleave}@db:5432/cleave
+      MINIO_ENDPOINT: minio:9000
+      MINIO_SECURE: "false"
+      RUN_MIGRATIONS: "true"     # self-migrate on boot; set "false" to manage migrations yourself
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    ports:
+      - "8000:8000"     # put behind your reverse proxy / tunnel for TLS (see ../docs/OPERATIONS.md)
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s   # first boot runs migrations before the server answers
+    # Off-device restic backups (optional, advanced) shell out to ssh with a mounted key. Uncomment to enable
+    # and drop your SSH material in ./secrets/ssh (see ../docs/OPERATIONS.md).
+    # volumes:
+    #   - ./secrets/ssh:/root/.ssh:ro
+
+volumes:
+  cleave_db_data:
+    name: cleave_db_data
+  cleave_minio_data:
+    name: cleave_minio_data

@@ -1,0 +1,24 @@
+{
+  "module": "goals",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SpendingAnalytics.swift (monthRange / monthlySpending / monthlyNetIncome)",
+  "note": "monthRange: first-of-month dates for the last N months ending in `ending`'s month, oldest first. monthlySpending: total isSpend per month, zero-filled. monthlyNetIncome: (inflow - outflow) per cash-flow month, income/reimbursement counting as inflow, neutral excluded. Dates noon-UTC (tz-stable); months asserted as year-month, values as decimals.",
+  "cases": [
+    { "name": "month-range-3", "fn": "monthRange", "input": { "months": 3, "ending": "2025-06-15T12:00:00Z" },
+      "expected": { "range": [ { "year": 2025, "month": 4 }, { "year": 2025, "month": 5 }, { "year": 2025, "month": 6 } ] } },
+
+    { "name": "monthly-spending-zero-filled", "fn": "monthlySpending",
+      "input": { "months": 3, "ending": "2025-06-15T12:00:00Z", "me": null, "lookup": {},
+        "transactions": [ { "id": "22222222-0000-0000-0000-0000000000a1", "accountId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "source": "plaid", "amount": "100", "category": "FOOD_AND_DRINK_GROCERIES", "date": "2025-06-15T12:00:00Z" } ],
+        "accounts": [ { "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "name": "Chk", "type": "checking" } ],
+        "expenses": [], "groups": [] },
+      "expected": { "values": [ { "year": 2025, "month": 4, "value": "0" }, { "year": 2025, "month": 5, "value": "0" }, { "year": 2025, "month": 6, "value": "100" } ] } },
+
+    { "name": "monthly-net-income-inflow-minus-outflow", "fn": "monthlyNetIncome",
+      "input": { "months": 2, "ending": "2025-06-15T12:00:00Z", "me": "me", "lookup": {},
+        "transactions": [ { "id": "22222222-0000-0000-0000-0000000000b1", "accountId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "source": "plaid", "amount": "40", "category": "Groceries", "date": "2025-06-15T12:00:00Z" } ],
+        "accounts": [ { "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "name": "Chk", "type": "checking" } ],
+        "expenses": [ { "id": "eeeeeeee-0000-0000-0000-0000000000c1", "groupId": "99999999-9999-9999-9999-999999999999", "amount": "100", "category": "Income", "date": "2025-06-15T12:00:00Z", "splits": [ { "userIdentifier": "me", "paidShare": "0", "owedShare": "100" } ] } ],
+        "groups": [ { "id": "99999999-9999-9999-9999-999999999999" } ] },
+      "expected": { "values": [ { "year": 2025, "month": 5, "value": "0" }, { "year": 2025, "month": 6, "value": "60" } ] } }
+  ]
+}

@@ -1,0 +1,33 @@
+# Relay test suite. Runs the SAME script as local (scripts/test-relay.sh). Standalone: no services, no
+# secrets - 8 pytest tests in ~1s. Advisory by design (see backend-ci.yml). Path-filtered: a backend-only
+# change never triggers this.
+name: relay-ci
+
+on:
+  push:
+    paths:
+      - "relay/**"
+      - "scripts/test-relay.sh"
+      - ".github/workflows/relay-ci.yml"
+  pull_request:
+    paths:
+      - "relay/**"
+      - "scripts/test-relay.sh"
+      - ".github/workflows/relay-ci.yml"
+
+concurrency:
+  group: relay-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  relay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # No uv on the runner → the script's pip-venv fallback installs relay + pytest and runs.
+      - name: Run relay suite (same script as local)
+        run: bash scripts/test-relay.sh

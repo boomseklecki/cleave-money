@@ -1,0 +1,49 @@
+{
+  "module": "suggestions",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SuggestionRanking.swift",
+  "note": "typeWeight (integer tiers), recency (exp decay, 30-day half-life; dateless=0.5), confidence (per kind), score = typeWeight + 1.0*recency + 0.5*confidence. ranked sorts by score desc, ties by id asc, caps at 28. recency/score use Double/exp, so ranked asserts ORDER (by id); recency asserts values with tolerance.",
+  "cases": [
+    { "name": "tw-link", "fn": "typeWeight", "input": { "kind": "link" }, "expected": { "weight": 4 } },
+    { "name": "tw-recurringSplit", "fn": "typeWeight", "input": { "kind": "recurringSplit" }, "expected": { "weight": 4 } },
+    { "name": "tw-categorize", "fn": "typeWeight", "input": { "kind": "categorize" }, "expected": { "weight": 3 } },
+    { "name": "tw-overspend", "fn": "typeWeight", "input": { "kind": "overspend" }, "expected": { "weight": 2 } },
+    { "name": "tw-nearingBudget", "fn": "typeWeight", "input": { "kind": "nearingBudget" }, "expected": { "weight": 2 } },
+    { "name": "tw-settleUp", "fn": "typeWeight", "input": { "kind": "settleUp" }, "expected": { "weight": 2 } },
+    { "name": "tw-sharedBudgetCandidate", "fn": "typeWeight", "input": { "kind": "sharedBudgetCandidate" }, "expected": { "weight": 2 } },
+    { "name": "tw-subscription", "fn": "typeWeight", "input": { "kind": "subscription" }, "expected": { "weight": 1 } },
+
+    { "name": "conf-link-matchscore", "fn": "suggestionConfidence", "input": { "kind": "link", "matchScore": 0.9 }, "expected": { "confidence": 0.9 } },
+    { "name": "conf-link-default", "fn": "suggestionConfidence", "input": { "kind": "link" }, "expected": { "confidence": 0.85 } },
+    { "name": "conf-recurringSplit", "fn": "suggestionConfidence", "input": { "kind": "recurringSplit" }, "expected": { "confidence": 1.0 } },
+    { "name": "conf-categorize-scales", "fn": "suggestionConfidence", "input": { "kind": "categorize", "transactionIdCount": 3 }, "expected": { "confidence": 0.3 } },
+    { "name": "conf-categorize-capped", "fn": "suggestionConfidence", "input": { "kind": "categorize", "transactionIdCount": 15 }, "expected": { "confidence": 1.0 } },
+    { "name": "conf-subscription", "fn": "suggestionConfidence", "input": { "kind": "subscription" }, "expected": { "confidence": 0.5 } },
+    { "name": "conf-nudge", "fn": "suggestionConfidence", "input": { "kind": "settleUp" }, "expected": { "confidence": 0.6 } },
+
+    { "name": "recency-today", "fn": "recency", "input": { "date": "2025-06-15T12:00:00Z", "now": "2025-06-15T12:00:00Z" }, "expected": { "recency": 1.0 } },
+    { "name": "recency-dateless", "fn": "recency", "input": { "date": null, "now": "2025-06-15T12:00:00Z" }, "expected": { "recency": 0.5 } },
+    { "name": "recency-half-life", "fn": "recency", "input": { "date": "2025-05-16T12:00:00Z", "now": "2025-06-15T12:00:00Z" }, "expected": { "recency": 0.36787944117144233 } },
+
+    { "name": "ranked-type-dominates", "fn": "ranked",
+      "input": { "now": "2025-06-15T12:00:00Z", "suggestions": [
+        { "id": "s3", "kind": "subscription", "sortDate": "2025-06-15T12:00:00Z" },
+        { "id": "s1", "kind": "link", "sortDate": "2025-06-15T12:00:00Z", "matchScore": 0.9 },
+        { "id": "s2", "kind": "categorize", "sortDate": "2025-06-15T12:00:00Z", "transactionIdCount": 10 }
+      ] },
+      "expected": { "order": ["s1", "s2", "s3"] } },
+
+    { "name": "ranked-fresh-nudge-edges-stale-categorize", "fn": "ranked",
+      "input": { "now": "2025-06-15T12:00:00Z", "suggestions": [
+        { "id": "a", "kind": "categorize", "sortDate": "2020-01-01T12:00:00Z", "transactionIdCount": 1 },
+        { "id": "b", "kind": "settleUp", "sortDate": "2025-06-15T12:00:00Z" }
+      ] },
+      "expected": { "order": ["b", "a"] } },
+
+    { "name": "ranked-tie-breaks-on-id", "fn": "ranked",
+      "input": { "now": "2025-06-15T12:00:00Z", "suggestions": [
+        { "id": "z-second", "kind": "settleUp", "sortDate": "2025-06-15T12:00:00Z" },
+        { "id": "a-first", "kind": "settleUp", "sortDate": "2025-06-15T12:00:00Z" }
+      ] },
+      "expected": { "order": ["a-first", "z-second"] } }
+  ]
+}

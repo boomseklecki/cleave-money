@@ -1,0 +1,20 @@
+[project]
+name = "cleave-push-relay"
+version = "0.1.0"
+description = "Standalone APNs push relay for self-hosted Cleave instances."
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "httpx[http2]>=0.27",
+    "pyjwt[crypto]>=2.8",
+    "python-multipart>=0.0.9",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]

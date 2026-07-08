@@ -1,0 +1,44 @@
+{
+  "module": "split-math",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/SplitMath.swift",
+  "note": "owed = cents(amount * weight / totalWeight); rounding drift spread +/-1 cent round-robin from index 0. Zero total weight falls back to equal.",
+  "cases": [
+    {
+      "name": "weighted-percent-60-40",
+      "fn": "weightedSplit",
+      "input": { "amount": "10.00", "payer": "a", "participants": ["a", "b"], "weights": { "a": "60", "b": "40" } },
+      "expected": { "splits": [
+        { "userIdentifier": "a", "paidShare": "10.00", "owedShare": "6.00" },
+        { "userIdentifier": "b", "paidShare": "0.00", "owedShare": "4.00" }
+      ] }
+    },
+    {
+      "name": "weighted-shares-1-2-with-rounding",
+      "fn": "weightedSplit",
+      "input": { "amount": "10.00", "payer": "a", "participants": ["a", "b"], "weights": { "a": "1", "b": "2" } },
+      "expected": { "splits": [
+        { "userIdentifier": "a", "paidShare": "10.00", "owedShare": "3.33" },
+        { "userIdentifier": "b", "paidShare": "0.00", "owedShare": "6.67" }
+      ] }
+    },
+    {
+      "name": "weighted-equal-shares-drift-to-earliest",
+      "fn": "weightedSplit",
+      "input": { "amount": "10.00", "payer": "a", "participants": ["a", "b", "c"], "weights": { "a": "1", "b": "1", "c": "1" } },
+      "expected": { "splits": [
+        { "userIdentifier": "a", "paidShare": "10.00", "owedShare": "3.34" },
+        { "userIdentifier": "b", "paidShare": "0.00", "owedShare": "3.33" },
+        { "userIdentifier": "c", "paidShare": "0.00", "owedShare": "3.33" }
+      ] }
+    },
+    {
+      "name": "weighted-zero-weights-falls-back-to-equal",
+      "fn": "weightedSplit",
+      "input": { "amount": "10.00", "payer": "a", "participants": ["a", "b"], "weights": {} },
+      "expected": { "splits": [
+        { "userIdentifier": "a", "paidShare": "10.00", "owedShare": "5.00" },
+        { "userIdentifier": "b", "paidShare": "0.00", "owedShare": "5.00" }
+      ] }
+    }
+  ]
+}

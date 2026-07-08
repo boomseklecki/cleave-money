@@ -1,0 +1,39 @@
+{
+  "module": "matching",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/TransactionMatcher.swift",
+  "note": "transactionCandidates(): ranks transactions for an expense by an exponential amount+date+name score. Amount pre-gate (amountScore >= 0.6) and a +/-windowDays date window drop non-matches; already-linked transactions are excluded. Scores use Double/exp, so fixtures assert the RANKED ORDER + inclusion (by transaction details), not raw scores; cases keep clear score gaps. Non-recurring uses steep decays (near-exact amount + near-same-day); recurring tolerates more slack. relAmount is the best of matching the full bill or the caller's paidShare.",
+  "cases": [
+    { "name": "ranking-window-and-amount-pregate", "fn": "transactionCandidates",
+      "input": { "me": null,
+        "expense": { "amount": "50", "date": "2025-06-15T12:00:00Z", "details": "Dinner", "splits": [] },
+        "transactions": [
+          { "details": "exact", "amount": "50", "date": "2025-06-15T12:00:00Z" },
+          { "details": "nextday", "amount": "50", "date": "2025-06-14T12:00:00Z" },
+          { "details": "toofar", "amount": "50", "date": "2025-05-01T12:00:00Z" },
+          { "details": "wrongamt", "amount": "200", "date": "2025-06-15T12:00:00Z" }
+        ],
+        "expenses": [] },
+      "expected": { "order": ["exact", "nextday"] } },
+
+    { "name": "matches-payer-paid-share", "fn": "transactionCandidates",
+      "input": { "me": "me",
+        "expense": { "amount": "100", "date": "2025-06-15T12:00:00Z", "details": "Groceries", "splits": [ { "userIdentifier": "me", "paidShare": "50", "owedShare": "50" } ] },
+        "transactions": [ { "details": "half", "amount": "50", "date": "2025-06-15T12:00:00Z" } ],
+        "expenses": [] },
+      "expected": { "order": ["half"] } },
+
+    { "name": "recurring-tolerates-amount-slack", "fn": "transactionCandidates",
+      "input": { "me": null,
+        "expense": { "amount": "50", "date": "2025-06-15T12:00:00Z", "details": "Rent", "repeats": true, "splits": [] },
+        "transactions": [ { "details": "recur", "amount": "52", "date": "2025-06-10T12:00:00Z" } ],
+        "expenses": [] },
+      "expected": { "order": ["recur"] } },
+
+    { "name": "already-linked-excluded", "fn": "transactionCandidates",
+      "input": { "me": null,
+        "expense": { "id": "eeeeeeee-0000-0000-0000-0000000000e1", "amount": "50", "date": "2025-06-15T12:00:00Z", "details": "X", "splits": [] },
+        "transactions": [ { "id": "11111111-0000-0000-0000-0000000000d1", "details": "linked", "amount": "50", "date": "2025-06-15T12:00:00Z" } ],
+        "expenses": [ { "id": "eeeeeeee-0000-0000-0000-0000000000e2", "transactionId": "11111111-0000-0000-0000-0000000000d1", "amount": "1", "date": "2025-06-15T12:00:00Z", "details": "other", "splits": [] } ] },
+      "expected": { "order": [] } }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "module": "merchant-brand",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/Brand.swift (BrandMatcher)",
+  "note": "BrandMatcher.compile(pattern) then match an already-lowercased haystack. Three syntaxes: /regex/ (slash-wrapped, case-insensitive), a value with * or ? is a glob (*=any run, ?=one char), else a plain case-insensitive substring. All unanchored. A malformed /regex/ never matches. Text here is already lowercased (the caller lowercases).",
+  "cases": [
+    { "name": "substring-hit", "fn": "brandMatch", "input": { "pattern": "netflix", "text": "netflix.com 866" }, "expected": { "matches": true } },
+    { "name": "substring-miss", "fn": "brandMatch", "input": { "pattern": "netflix", "text": "hulu plus" }, "expected": { "matches": false } },
+    { "name": "regex-word-boundary-hit", "fn": "brandMatch", "input": { "pattern": "/\\bamc\\b/", "text": "amc theatres" }, "expected": { "matches": true } },
+    { "name": "regex-word-boundary-miss", "fn": "brandMatch", "input": { "pattern": "/\\bamc\\b/", "text": "amcx theatres" }, "expected": { "matches": false } },
+    { "name": "regex-alternation", "fn": "brandMatch", "input": { "pattern": "/aldi|lidl/", "text": "lidl market" }, "expected": { "matches": true } },
+    { "name": "glob-star", "fn": "brandMatch", "input": { "pattern": "apple*bill", "text": "apple.com/bill" }, "expected": { "matches": true } },
+    { "name": "glob-question", "fn": "brandMatch", "input": { "pattern": "giant?eagle", "text": "giant eagle" }, "expected": { "matches": true } },
+    { "name": "malformed-regex-never-matches", "fn": "brandMatch", "input": { "pattern": "/[/", "text": "whatever" }, "expected": { "matches": false } }
+  ]
+}

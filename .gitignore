@@ -1,0 +1,42 @@
+# Secrets (real configs; the *.example templates are committed)
+.env
+.env.dev
+.env.prod
+.env.demo
+.env.relay
+.env.*.local
+# APNs auth keys / private keys - never commit (the relay reads APNS_AUTH_KEY as base64 in .env.relay)
+*.p8
+*.pem
+*.key
+# Mounted secrets (SSH key + known_hosts + config for restic's sftp: off-device target) - never commit
+secrets/
+# Locally-managed Cloudflare tunnel config + its credentials (the *.example is committed); never commit
+cloudflared/config.yml
+cloudflared/credentials.json
+cloudflared/*.json
+# Tailscale serve config (the *.example is committed); never commit the filled-in one
+tailscale/serve.json
+# Local timestamped backups of the .env files (made before edits) - contain real secrets, never commit
+env_backup_*/
+
+# Local Claude Code settings (machine-local permissions)
+.claude/settings.local.json
+
+# Private, deployment-specific operations docs (this instance's hosts, NAS, secrets escrow) - never commit
+ops/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.ruff_cache/
+.pytest_cache/
+
+# uv
+uv.lock
+
+# OS
+.DS_Store

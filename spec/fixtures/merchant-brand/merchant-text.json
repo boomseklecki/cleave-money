@@ -1,0 +1,14 @@
+{
+  "module": "merchant-brand",
+  "reference": "ios/CleaveAPI/Sources/CleaveAPI/Logic/MerchantText.swift",
+  "note": "words: lowercase, every non-letter -> space, split, drop words <3 chars or in the noise set. key = first 3 words joined by space. tokens = the set of words. (This noise set differs from the matching stopword set.)",
+  "cases": [
+    { "name": "netflix-with-phone-state", "fn": "merchantWords", "input": { "text": "Netflix.com 866-579-7172 CA" }, "expected": { "words": ["netflix"] } },
+    { "name": "netflix-key", "fn": "merchantKey", "input": { "text": "Netflix.com 866-579-7172 CA" }, "expected": { "key": "netflix" } },
+    { "name": "trader-joes-key", "fn": "merchantKey", "input": { "text": "Trader Joe's #455" }, "expected": { "key": "trader joe" } },
+    { "name": "sq-prefix-key", "fn": "merchantKey", "input": { "text": "SQ *BLUE BOTTLE" }, "expected": { "key": "blue bottle" } },
+    { "name": "first-three-words-only", "fn": "merchantKey", "input": { "text": "Anthropic Claude Sub Team" }, "expected": { "key": "anthropic claude sub" } },
+    { "name": "all-short-empty-key", "fn": "merchantKey", "input": { "text": "A B" }, "expected": { "key": "" } },
+    { "name": "tokens-set", "fn": "merchantTokens", "input": { "text": "Trader Joe's #455" }, "expected": { "tokens": ["trader", "joe"] } }
+  ]
+}
